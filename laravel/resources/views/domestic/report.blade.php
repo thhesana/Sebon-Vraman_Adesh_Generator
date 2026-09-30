@@ -1,0 +1,608 @@
+@extends('layouts.app')
+
+@section('title', 'Domestic TADA Report '.$selectedFYName)
+
+@push('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kalimati&display=swap" rel="stylesheet">
+<style>
+/* ── Kalimati universal (scoped to the report body so the site header keeps its own look) ── */
+.dtr, .dtr *, .dtr *::before, .dtr *::after {
+    box-sizing: border-box;
+    font-family: 'Kalimati', sans-serif !important;
+}
+
+:root {
+    --teal:    #0d9488;
+    --teal-lt: #ccfbf1;
+    --teal-dk: #0f766e;
+    --ink:     #0f172a;
+    --muted:   #64748b;
+    --border:  #e2e8f0;
+    --bg:      #f8fafc;
+    --white:   #ffffff;
+}
+
+.dtr { background: var(--bg); color: var(--ink); padding-bottom: 60px; font-size: 14px; }
+
+/* ── Top bar ── */
+.dtr .topbar {
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 12px;
+    box-shadow: 0 1px 8px rgba(0,0,0,.05);
+}
+.topbar-title { font-size: 19px; font-weight: 700; display: flex; align-items: center; gap: 10px; color: var(--ink); }
+.topbar-title .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--teal); flex-shrink: 0; }
+.topbar-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* ── Buttons ── */
+.btn-teal, .btn-outline, .btn-excel, .btn-print {
+    border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    text-decoration: none; transition: background .2s, transform .15s;
+    padding: 9px 18px; border: none;
+}
+.btn-teal   { background: var(--teal); color: #fff; }
+.btn-teal:hover { background: var(--teal-dk); transform: translateY(-1px); color: #fff; }
+.btn-outline { background: transparent; color: var(--teal); border: 1.5px solid var(--teal); padding: 8px 16px; }
+.btn-outline:hover { background: var(--teal-lt); color: var(--teal-dk); }
+.btn-excel  { background: #166534; color: #fff; }
+.btn-excel:hover { background: #14532d; }
+.btn-print  { background: #1e3a5f; color: #fff; }
+.btn-print:hover { background: #152c47; }
+
+/* ── Filter card ── */
+.filter-card {
+    background: var(--white); border: 1px solid var(--border); border-radius: 14px;
+    padding: 22px 28px; margin: 22px 32px; box-shadow: 0 2px 12px rgba(0,0,0,.04);
+}
+.filter-card h6 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 16px; display: flex; align-items: center; gap: 6px; }
+.filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+.filter-grid label { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 5px; display: block; }
+
+/* Select2 */
+.select2-container { width: 100% !important; }
+.select2-container--default .select2-selection--single { height: 40px; border: 1.5px solid var(--border); border-radius: 8px; display: flex; align-items: center; background: var(--bg); }
+.select2-container--default.select2-container--focus .select2-selection--single { border-color: var(--teal); box-shadow: 0 0 0 3px rgba(13,148,136,.12); }
+.select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 38px; color: var(--ink); font-size: 13px; padding-left: 12px; }
+.select2-container--default .select2-selection--single .select2-selection__arrow { height: 38px; }
+.select2-dropdown { border: 1.5px solid var(--teal); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+.select2-container--default .select2-results__option--highlighted[aria-selected] { background: var(--teal); }
+
+/* ── Stats bar ── */
+.stats-bar { display: flex; gap: 14px; margin: 0 32px 18px; flex-wrap: wrap; }
+.stat-pill { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 12px 20px; display: flex; flex-direction: column; gap: 3px; min-width: 150px; box-shadow: 0 1px 4px rgba(0,0,0,.04); }
+.stat-pill .val { font-size: 22px; font-weight: 700; color: var(--teal-dk); line-height: 1; }
+.stat-pill .lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); }
+
+/* ── Prompt box ── */
+.prompt-box { margin: 0 32px; background: var(--white); border: 1.5px dashed var(--border); border-radius: 14px; padding: 60px 20px; text-align: center; color: var(--muted); }
+.prompt-box i { font-size: 48px; margin-bottom: 14px; display: block; color: #cbd5e1; }
+.prompt-box p { font-size: 15px; }
+
+/* ── Screen table ── */
+.table-wrap { margin: 0 32px; background: var(--white); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,.05); }
+#reportTable { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+#reportTable thead tr { background: var(--teal); color: #fff; }
+#reportTable thead th { padding: 11px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; border: none; }
+#reportTable tbody tr { border-bottom: 1px solid #f1f5f9; transition: background .15s; }
+#reportTable tbody tr:hover { background: #f0fdfa; }
+#reportTable tbody td { padding: 11px 12px; color: var(--ink); vertical-align: middle; }
+.td-emp  { font-weight: 600; }
+.td-num  { font-weight: 600; color: #166534; white-space: nowrap; }
+.td-days { text-align: center; }
+.badge-yes { background: #dcfce7; color: #166534; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.badge-no  { background: #f1f5f9; color: var(--muted); padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+#reportTable tfoot tr { background: #f0fdfa; border-top: 2px solid var(--teal); }
+#reportTable tfoot td { padding: 12px; font-weight: 700; font-size: 13px; }
+.tfoot-total { font-size: 14px; color: var(--teal-dk); }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+.empty-state i { font-size: 48px; margin-bottom: 12px; }
+
+@media (max-width: 768px) {
+    .filter-card, .stats-bar, .table-wrap, .prompt-box { margin-left: 16px; margin-right: 16px; }
+    .dtr .topbar { padding: 14px 16px; }
+    #reportTable { font-size: 11px; }
+    #reportTable thead th, #reportTable tbody td { padding: 8px; }
+}
+
+/* ══════════════════════════════════════════════════════
+   PRINT STYLES
+   Everything inside #printSection is what gets printed.
+   All screen UI (site header, topbar, filter, stats, screen table)
+   is hidden. The print section is hidden on screen.
+══════════════════════════════════════════════════════ */
+#printSection { display: none; }
+
+@media print {
+    /* Hide everything screen-only (including the shared site header/footer) */
+    .app-header, .nav-tabs, .app-footer, .spinner-overlay,
+    .dtr .topbar, .filter-card, .stats-bar, .table-wrap,
+    .prompt-box, .screen-only { display: none !important; }
+
+    /* Show only print section */
+    #printSection { display: block !important; }
+
+    body { background: #fff; padding: 0; margin: 0; font-size: 11pt; }
+    .dtr { background: #fff; padding: 0; }
+
+    /* ── Official document header ── */
+    .print-letterhead {
+        text-align: center;
+        border-bottom: 3px double #000;
+        padding-bottom: 10px;
+        margin-bottom: 12px;
+    }
+    .print-org-name {
+        font-size: 18pt;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        line-height: 1.3;
+    }
+    .print-org-sub {
+        font-size: 11pt;
+        margin-top: 3px;
+    }
+    .print-doc-title {
+        font-size: 14pt;
+        font-weight: 700;
+        text-align: center;
+        margin: 10px 0 4px;
+        text-decoration: underline;
+        text-underline-offset: 4px;
+    }
+    .print-meta-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        font-size: 10pt;
+        margin: 6px 0 12px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 7px 12px;
+        background: #f9f9f9;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .print-meta-bar .meta-item { display: flex; flex-direction: column; gap: 1px; }
+    .print-meta-bar .meta-label { font-size: 8pt; text-transform: uppercase; letter-spacing: 0.8px; color: #555; font-weight: 700; }
+    .print-meta-bar .meta-value { font-size: 11pt; font-weight: 700; color: #000; }
+
+    /* ── Print table ── */
+    #printTable {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 9.5pt;
+        margin-top: 4px;
+    }
+    #printTable thead tr { background: #1e3a5f !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #printTable thead th {
+        padding: 7px 8px;
+        font-size: 8.5pt;
+        font-weight: 700;
+        text-align: center;
+        border: 1px solid #1e3a5f;
+        white-space: nowrap;
+        color: #fff !important;
+    }
+    #printTable tbody tr:nth-child(even) { background: #f5f8ff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #printTable tbody td {
+        padding: 6px 8px;
+        border: 1px solid #ccc;
+        vertical-align: middle;
+        color: #000;
+    }
+    #printTable tbody td.tc { text-align: center; }
+    #printTable tbody td.tr { text-align: right; }
+    #printTable tfoot tr { background: #e8f5e9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    #printTable tfoot td {
+        padding: 7px 8px;
+        border: 1px solid #999;
+        font-weight: 700;
+        font-size: 10pt;
+    }
+    #printTable tfoot td.tr { text-align: right; }
+
+    /* ── Signature block ── */
+    .print-signature-block {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 40px;
+        padding-top: 10px;
+        font-size: 10pt;
+    }
+    .print-sig-item { text-align: center; min-width: 150px; }
+    .print-sig-line { border-top: 1px solid #000; margin-bottom: 4px; padding-top: 4px; }
+
+    /* ── Footer ── */
+    .print-footer {
+        margin-top: 16px;
+        border-top: 1px solid #ccc;
+        padding-top: 6px;
+        font-size: 8pt;
+        color: #555;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    @page { size: A4 landscape; margin: 12mm 10mm; }
+}
+</style>
+@endpush
+
+@section('content')
+@php
+    $fmtDate = fn ($d) => $d ? \Carbon\Carbon::parse($d)->format('Y-m-d') : '';
+    $fmtNum = fn ($n) => ($n === null || $n === '') ? '0' : ((floor($n) == $n) ? number_format($n, 0) : number_format($n, 2));
+@endphp
+<div class="dtr">
+
+<!-- Top bar -->
+<div class="topbar screen-only">
+    <div class="topbar-title">
+        <span class="dot"></span>
+        Domestic TADA Report
+        @if ($filterApplied && $selectedFYName)
+            <span style="font-size:13px;font-weight:500;color:var(--teal);margin-left:4px;">
+                — आ.व. {{ $selectedFYName }}
+            </span>
+        @endif
+    </div>
+    <div class="topbar-actions">
+        @if ($filterApplied && ! empty($records))
+        <button class="btn-excel" id="btnExcel" onclick="exportExcel()">
+            <i class="bi bi-file-earmark-excel-fill"></i> Excel
+        </button>
+        <button class="btn-print" onclick="triggerPrint()">
+            <i class="bi bi-printer-fill"></i> Print
+        </button>
+        @endif
+    </div>
+</div>
+
+<!-- Filter card -->
+<div class="filter-card screen-only">
+    <h6><i class="bi bi-funnel-fill"></i> Filter Report</h6>
+    <form method="GET" action="{{ url('/DOMESTIC_TADAREPORT.php') }}">
+        <input type="hidden" name="filter_applied" value="1">
+        <div class="filter-grid">
+            <div>
+                <label>Fiscal Year / आर्थिक वर्ष</label>
+                <select name="fy" id="sel-fy" class="select2-filter">
+                    <option value="">— All Years —</option>
+                    @foreach ($fyList as $fy)
+                        <option value="{{ $fy->fiscal_year_master_id }}" @selected($filterFY == $fy->fiscal_year_master_id)>{{ $fy->fy }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label>Employee / कर्मचारी</label>
+                <select name="emp" id="sel-emp" class="select2-filter">
+                    <option value="">— All Employees —</option>
+                    @foreach ($empList as $emp)
+                        <option value="{{ $emp->EmpPersonalCode }}" @selected($filterEmp == $emp->EmpPersonalCode)>{{ $emp->EmpName }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label>District / जिल्ला</label>
+                <select name="district" id="sel-dist" class="select2-filter">
+                    <option value="">— All Districts —</option>
+                    @foreach ($districtList as $d)
+                        <option value="{{ $d->District_id }}" @selected($filterDistrict == $d->District_id)>{{ $d->District_name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label>Designation / पद</label>
+                <select name="designation" id="sel-desig" class="select2-filter">
+                    <option value="">— All Designations —</option>
+                    @foreach ($desigList as $d)
+                        <option value="{{ $d->Designation }}" @selected($filterDesig == $d->Designation)>{{ $d->Designation }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+        <div class="mt-3 d-flex gap-2 flex-wrap">
+            <button type="submit" class="btn-teal">
+                <i class="bi bi-search"></i> Apply Filter
+            </button>
+            @if ($filterApplied)
+                <a href="{{ url('/DOMESTIC_TADAREPORT.php') }}" class="btn-outline"><i class="bi bi-x-circle"></i> Clear All</a>
+            @endif
+        </div>
+    </form>
+</div>
+
+@if (! $filterApplied)
+<div class="prompt-box screen-only">
+    <i class="bi bi-funnel"></i>
+    <p>Please select filter options above and click <strong>Apply Filter</strong> to load the report.</p>
+</div>
+
+@else
+@php
+    $batchCount = collect($records)->pluck('domestic_Batch_id')->unique()->count();
+    $empCount = collect($records)->pluck('EmpPersonalCode')->unique()->count();
+@endphp
+
+<!-- Stats -->
+<div class="stats-bar screen-only">
+    <div class="stat-pill">
+        <span class="val">{{ count($records) }}</span>
+        <span class="lbl">Total Records</span>
+    </div>
+    <div class="stat-pill">
+        <span class="val">{{ $batchCount }}</span>
+        <span class="lbl">Batches</span>
+    </div>
+    <div class="stat-pill">
+        <span class="val">{{ $empCount }}</span>
+        <span class="lbl">Employees</span>
+    </div>
+    <div class="stat-pill">
+        <span class="val" style="font-size:16px;">{{ $selectedFYName ?: 'All' }}</span>
+        <span class="lbl">Fiscal Year</span>
+    </div>
+</div>
+
+<!-- Screen table -->
+<div class="table-wrap screen-only">
+<div style="overflow-x:auto;">
+<table id="reportTable">
+    <thead>
+        <tr>
+            <th>SN</th>
+            <th>Travel Order</th>
+            <th>Chalani No</th>
+            <th>Employee</th>
+            <th>Designation</th>
+            <th>District</th>
+            <th>Travel Objective</th>
+            <th>Travel Start (BS)</th>
+            <th>Travel End (BS)</th>
+            <th>Days</th>
+            <th>Daily Rate (रु)</th>
+            <th>Total TADA (रु)</th>
+            <th>20% Extra</th>
+            <th>Travel Mode</th>
+        </tr>
+    </thead>
+    <tbody>
+    @if (empty($records))
+        <tr><td colspan="14"><div class="empty-state"><i class="bi bi-inbox d-block"></i>No records found.</div></td></tr>
+    @else
+        @foreach ($records as $row)
+            @php
+                $startAD = $fmtDate($row->domestic_travelDateStart);
+                $endAD = $fmtDate($row->domestic_travelDateEnd);
+                $orderDateAD = $fmtDate($row->domestic_form_date);
+                $dailyRate = (float) ($row->tadaInNepali ?? 0);
+                $is20 = (int) ($row->domestic_isTwentyPercentExtra ?? 0);
+                $displayRate = $is20 ? $dailyRate * 1.2 : $dailyRate;
+                $desigNep = $row->designationTypeInNepali ?? '-';
+            @endphp
+            <tr>
+                <td class="text-muted" style="font-size:11px;">{{ $loop->iteration }}</td>
+                <td class="td-days"><span class="bs-date" data-ad="{{ $orderDateAD }}">{{ $orderDateAD }}</span></td>
+                <td style="font-size:12px;">{{ ($row->fiscal_year ?? '').'-'.($row->domestic_Chalani_id ?? '') }}</td>
+                <td class="td-emp">{{ $row->EmpNameInNepali ?? $row->EmpPersonalCode }}</td>
+                <td style="font-size:12px;">{{ $desigNep }}</td>
+                <td>{{ $row->District_name_nepali ?? '-' }}</td>
+                <td style="max-width:180px;font-size:12px;">{{ $row->domestic_travel_objective ?? '' }}</td>
+                <td class="td-days"><span class="bs-date" data-ad="{{ $startAD }}">{{ $startAD }}</span></td>
+                <td class="td-days"><span class="bs-date" data-ad="{{ $endAD }}">{{ $endAD }}</span></td>
+                <td class="td-days"><strong>{{ $fmtNum($row->domestic_totalday) }}</strong></td>
+                <td class="td-num">{{ $fmtNum($displayRate) }}</td>
+                <td class="td-num">{{ $fmtNum(round((float) $row->domestic_tada, 2)) }}</td>
+                <td class="text-center"><span class="{{ $is20 ? 'badge-yes' : 'badge-no' }}">{{ $is20 ? 'छ' : 'छैन' }}</span></td>
+                <td style="font-size:12px;">{{ $row->travel_type ?? '-' }}</td>
+            </tr>
+        @endforeach
+    @endif
+    </tbody>
+    @if (! empty($records))
+    <tfoot>
+        <tr>
+            <td colspan="11" class="text-end" style="font-size:12px;font-weight:700;">जम्मा (Grand Total)</td>
+            <td class="tfoot-total">रु. {{ number_format($grandTotal, 2) }}</td>
+            <td colspan="2"></td>
+        </tr>
+    </tfoot>
+    @endif
+</table>
+</div>
+</div><!-- /screen table-wrap -->
+
+
+<!-- ══════════════════════════════════════════
+     PRINT SECTION — hidden on screen,
+     rendered only by @media print
+══════════════════════════════════════════ -->
+<div id="printSection">
+
+    <!-- Letterhead -->
+    <div class="print-letterhead">
+        <div class="print-org-sub">नेपाल धितोपत्र बोर्ड</div>
+        <div class="print-org-sub">खुमत्लर, ललितपुर</div>
+    </div>
+
+    <!-- Document title -->
+    <div class="print-doc-title">स्वदेश  भ्रमण  विवरण</div>
+
+    <!-- Print table -->
+    <table id="printTable">
+        <thead>
+            <tr>
+                <th style="width:28px;">सि.नं.</th>
+                <th>आदेश मिति</th>
+                <th>चलानी नं.</th>
+                <th>कर्मचारीको नाम</th>
+                <th>पद</th>
+                <th>जिल्ला</th>
+                <th>भ्रमणको उद्देश्य</th>
+                <th>भ्रमण सुरु</th>
+                <th>भ्रमण अन्त्य</th>
+                <th style="width:36px;">दिन</th>
+                <th>दर (रु.)</th>
+                <th>जम्मा (रु.)</th>
+                <th style="width:46px;">२०% थप</th>
+                <th>यात्रा</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (empty($records))
+            <tr><td colspan="14" style="text-align:center;padding:20px;">कुनै रेकर्ड भेटिएन।</td></tr>
+        @else
+            @foreach ($records as $row)
+                @php
+                    $startAD2 = $fmtDate($row->domestic_travelDateStart);
+                    $endAD2 = $fmtDate($row->domestic_travelDateEnd);
+                    $orderDateAD2 = $fmtDate($row->domestic_form_date);
+                    $dailyRate2 = (float) ($row->tadaInNepali ?? 0);
+                    $is202 = (int) ($row->domestic_isTwentyPercentExtra ?? 0);
+                    $displayRate2 = $is202 ? $dailyRate2 * 1.2 : $dailyRate2;
+                    $desigNep2 = $row->designationTypeInNepali ?? '-';
+                @endphp
+                <tr>
+                    <td class="tc">{{ $loop->iteration }}</td>
+                    <td class="tc"><span class="bs-date-print" data-ad="{{ $orderDateAD2 }}">{{ $orderDateAD2 }}</span></td>
+                    <td class="tc">{{ ($row->fiscal_year ?? '').'-'.($row->domestic_Chalani_id ?? '') }}</td>
+                    <td style="font-weight:600;">{{ $row->EmpNameInNepali ?? $row->EmpPersonalCode }}</td>
+                    <td>{{ $desigNep2 }}</td>
+                    <td>{{ $row->District_name_nepali ?? '-' }}</td>
+                    <td style="max-width:150px;">{{ $row->domestic_travel_objective ?? '' }}</td>
+                    <td class="tc"><span class="bs-date-print" data-ad="{{ $startAD2 }}">{{ $startAD2 }}</span></td>
+                    <td class="tc"><span class="bs-date-print" data-ad="{{ $endAD2 }}">{{ $endAD2 }}</span></td>
+                    <td class="tc"><strong>{{ $fmtNum($row->domestic_totalday) }}</strong></td>
+                    <td class="tr">{{ $fmtNum($displayRate2) }}</td>
+                    <td class="tr">{{ $fmtNum(round((float) $row->domestic_tada, 2)) }}</td>
+                    <td class="tc">{{ $is202 ? 'छ' : 'छैन' }}</td>
+                    <td>{{ $row->travel_type ?? '-' }}</td>
+                </tr>
+            @endforeach
+        @endif
+        </tbody>
+        @if (! empty($records))
+        <tfoot>
+            <tr>
+                <td colspan="11" class="tr" style="font-size:10pt;">जम्मा (Grand Total)</td>
+                <td class="tr">रु. {{ number_format($grandTotal, 2) }}</td>
+                <td colspan="2"></td>
+            </tr>
+        </tfoot>
+        @endif
+    </table>
+
+    <!-- Print footer -->
+    <div class="print-footer">
+        <span>यो विवरण कम्प्युटरबाट उत्पन्न गरिएको हो।</span>
+        <span id="printFooterDate"></span>
+    </div>
+</div>
+@endif
+
+</div><!-- /.dtr -->
+@endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://nepalidatepicker.sajanmaharjan.com.np/v5/nepali.datepicker/js/nepali.datepicker.v5.0.6.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<script>
+$(document).ready(function () {
+    $('.select2-filter').select2({ placeholder: 'Search...', allowClear: true, width: '100%' });
+});
+
+/* ── BS date conversion for screen table ── */
+window.addEventListener('load', function () {
+    setTimeout(function () {
+        /* Screen dates */
+        document.querySelectorAll('.bs-date').forEach(function (el) {
+            var ad = el.getAttribute('data-ad');
+            if (!ad) return;
+            try {
+                var bs = NepaliFunctions.AD2BS(ad, "YYYY-MM-DD", "YYYY/MM/DD");
+                el.textContent = bs;
+                el.setAttribute('data-bs-val', bs);
+            } catch(e) {}
+        });
+
+        /* Print table dates */
+        document.querySelectorAll('.bs-date-print').forEach(function (el) {
+            var ad = el.getAttribute('data-ad');
+            if (!ad) return;
+            try {
+                var bs = NepaliFunctions.AD2BS(ad, "YYYY-MM-DD", "YYYY/MM/DD");
+                el.textContent = bs;
+            } catch(e) {}
+        });
+
+        /* Print footer today BS date */
+        var el2 = document.getElementById('printFooterDate');
+        try {
+            var todayAD = new Date().toISOString().slice(0,10);
+            var todayBS = NepaliFunctions.AD2BS(todayAD, "YYYY-MM-DD", "YYYY/MM/DD");
+            if (el2) el2.textContent = 'मुद्रण मिति: ' + todayBS;
+        } catch(e) {
+            if (el2) el2.textContent = 'Printed: ' + new Date().toLocaleDateString();
+        }
+    }, 450);
+});
+
+/* ── Print trigger ── */
+function triggerPrint() {
+    window.print();
+}
+
+/* ── Excel export ── */
+function exportExcel() {
+    var table = document.getElementById('reportTable');
+    var rows  = [];
+
+    rows.push(['घरेलु भ्रमण भत्ता (Domestic TADA) विवरण']);
+    rows.push(['आर्थिक वर्ष:', @json($selectedFYName), '', 'चलानी नं.:', @json((string) $chalaniRange)]);
+    rows.push(['मुद्रण मिति:', new Date().toLocaleDateString()]);
+    rows.push([]);
+
+    var headers = [];
+    table.querySelectorAll('thead th').forEach(function(th){ headers.push(th.innerText.trim()); });
+    rows.push(headers);
+
+    table.querySelectorAll('tbody tr').forEach(function(tr) {
+        if (tr.querySelector('.empty-state')) return;
+        var row = [];
+        tr.querySelectorAll('td').forEach(function(td) {
+            var bsEl = td.querySelector('.bs-date');
+            row.push(bsEl ? (bsEl.getAttribute('data-bs-val') || bsEl.innerText.trim()) : td.innerText.trim());
+        });
+        rows.push(row);
+    });
+
+    var tfoot = table.querySelector('tfoot tr');
+    if (tfoot) {
+        var fRow = new Array(headers.length).fill('');
+        fRow[10] = 'जम्मा (Grand Total)';
+        var fc   = tfoot.querySelectorAll('td');
+        fRow[11] = fc[1] ? fc[1].innerText.trim() : '';
+        rows.push(fRow);
+    }
+
+    var wb = XLSX.utils.book_new();
+    var ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [4,14,14,22,18,16,30,13,13,5,14,16,9,14].map(function(w){ return {wch:w}; });
+    ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:13} }];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Domestic TADA');
+    XLSX.writeFile(wb, 'DomesticTADA_' + @json($selectedFYName) + '_' + new Date().toISOString().slice(0,10) + '.xlsx');
+}
+</script>
+@endpush

@@ -1,0 +1,1 @@
+RedirectMatch 302 ^/Vraman_Adesh_Generator_laravel/?$ /Vraman_Adesh_Generator_laravel/public/
