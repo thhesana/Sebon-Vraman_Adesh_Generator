@@ -3,24 +3,18 @@
 @section('title', 'TADA Definer Master By Level')
 
 @section('content')
-<div class="container mt-4">
-    <h3 class="text-center mb-4">TADA Definer Master By Level</h3>
+<div class="page">
+    <x-page-header title="TADA Definer Master By Level" subtitle="TADA rates per employee level (USD)" />
 
-    <table class="table table-bordered table-striped">
-        <thead class="bg-primary text-white">
-            <tr>
-                <th>Level Name</th>
-                <th>TADA (USD) </th>
-            </tr>
-        </thead>
-        <tbody>
-        @foreach ($levels as $row)
+    <x-data-table :headings="['Level Name', 'TADA (USD)']">
+        @forelse ($levels as $row)
             <tr>
                 <td>{{ $row->TadaDefinerMasterBylevel_name }}</td>
-                <td>{{ $row->tadaInUSD }}</td>
+                <td class="num">{{ $row->tadaInUSD }}</td>
             </tr>
-        @endforeach
-        </tbody>
-    </table>
+        @empty
+            <x-empty-row colspan="2" message="No records found." />
+        @endforelse
+    </x-data-table>
 </div>
 @endsection

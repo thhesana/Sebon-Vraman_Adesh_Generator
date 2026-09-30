@@ -3,43 +3,28 @@
 @section('title', 'Add New Fiscal Year')
 
 @section('content')
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-6">
-            <div class="card shadow rounded-4">
-                <div class="card-header bg-primary text-white text-center rounded-top-4">
-                    <h4 class="mb-0">Add New Fiscal Year</h4>
-                </div>
-                <div class="card-body">
-                    <form action="{{ route('fiscal_years.store') }}" method="POST">
-                        @csrf
-                        <div class="mb-3">
-                            <label for="fy" class="form-label">Fiscal Year</label>
-                            <input type="text" name="fy" id="fy" value="{{ old('fy') }}" class="form-control" placeholder="Example: 2082/83" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="fy_startdate" class="form-label">Start Date</label>
-                            <input type="date" name="fy_startdate" id="fy_startdate" value="{{ old('fy_startdate') }}" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="fy_enddate" class="form-label">End Date</label>
-                            <input type="date" name="fy_enddate" id="fy_enddate" value="{{ old('fy_enddate') }}" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label for="fy_status" class="form-label">Status</label>
-                            <select name="fy_status" id="fy_status" class="form-select" required>
-                                <option value="">-- Select Status --</option>
-                                <option value="ACTIVE" {{ old('fy_status') == 'ACTIVE' ? 'selected' : '' }}>ACTIVE</option>
-                                <option value="INACTIVE" {{ old('fy_status') == 'INACTIVE' ? 'selected' : '' }}>INACTIVE</option>
-                            </select>
-                        </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-success btn-lg">Add Fiscal Year</button>
-                        </div>
-                    </form>
-                </div>
+<div class="page page-narrow">
+    <x-page-header title="Add Fiscal Year" subtitle="Register a new fiscal year" />
+
+    <div class="card">
+        <div class="card-header">Fiscal Year Details</div>
+        <form action="{{ route('fiscal_years.store') }}" method="POST">
+            @csrf
+
+            <div class="card-body">
+                <x-form-field name="fy" id="fy" label="Fiscal Year" placeholder="Example: 2082/83" />
+                <x-form-field name="fy_startdate" id="fy_startdate" type="date" label="Start Date" />
+                <x-form-field name="fy_enddate" id="fy_enddate" type="date" label="End Date" />
+                <x-select-field name="fy_status" id="fy_status" label="Status"
+                                :options="['ACTIVE' => 'ACTIVE', 'INACTIVE' => 'INACTIVE']"
+                                placeholder="-- Select Status --" />
             </div>
-        </div>
+
+            <div class="card-footer d-flex justify-content-end gap-2">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <a href="{{ route('fiscal_years.index') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
     </div>
 </div>
 @endsection

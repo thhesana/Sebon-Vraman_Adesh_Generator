@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\BatchMailQueue;
+use App\Models\DomesticTada;
+use App\Models\InternationalTada;
 use Exception;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -21,17 +23,7 @@ class MailService
 {
     public function sendDomesticBatch(string $batchId): bool
     {
-        $rows = DB::select("
-            SELECT dt.domestic_tada_id, dt.EmpPersonalCode, e.EmpName, e.Gender, e.Email, e.Designation, e.LevelName,
-                   dm.District_name,
-                   CASE WHEN dt.domestic_isTwentyPercentExtra = 1 THEN 'Yes' ELSE 'No' END AS isTwentyPercentExtra,
-                   dt.domestic_travel_objective, dt.domestic_travelDateStart, dt.domestic_travelDateEnd,
-                   dt.domestic_totalday, dt.domestic_tada, dtd.tadaInNepali
-            FROM DomesticTada dt
-            LEFT JOIN Employee_Information e ON dt.EmpPersonalCode = e.EmpPersonalCode
-            LEFT JOIN DistrictMaster dm ON dt.District_id = dm.District_id
-            LEFT JOIN DomesticTadaDefinerMasterBylevel dtd ON e.LevelName = dtd.DomesticTadaDefinerMasterBylevel_name
-            WHERE dt.domestic_Batch_id = ?", [$batchId]);
+        $rows = $this->domesticRows($batchId);
 
         return $this->sendBatch(
             $batchId,
@@ -47,22 +39,7 @@ class MailService
 
     public function sendInternationalBatch(string $batchId): bool
     {
-        $rows = DB::select("
-            SELECT i.Batch_id, i.EmpPersonalCode, emp.EmpName AS EmployeeName, emp.Gender, emp.Email,
-                   c.Country_name AS Country, ci.City_name AS City, i.travel_objective,
-                   i.travelDateStart, i.travelDateEnd,
-                   CAST(DATEDIFF(DAY, i.travelDateStart, i.travelDateEnd) + 1 - 0.5 AS DECIMAL(5,2)) AS totalday,
-                   CASE WHEN c.extra33percent_country = 1
-                        THEN (t.tadaInUSD * 1.33) * (DATEDIFF(DAY, i.travelDateStart, i.travelDateEnd) + 1 - 0.5)
-                        ELSE t.tadaInUSD * (DATEDIFF(DAY, i.travelDateStart, i.travelDateEnd) + 1 - 0.5)
-                   END AS tadaInUSD_Final,
-                   CASE WHEN i.DressAllowance = 1 THEN 'Yes' ELSE 'No' END AS DressAllowance
-            FROM International_tada i
-            LEFT JOIN CountryMaster c ON i.Country_id = c.Country_id
-            LEFT JOIN CityMaster ci ON i.City_id = ci.City_id
-            LEFT JOIN TadaDefinerMasterBylevel t ON i.TadaDefinerMasterBylevel_id = t.TadaDefinerMasterBylevel_id
-            LEFT JOIN Employee_Information emp ON i.EmpPersonalCode = emp.EmpPersonalCode
-            WHERE i.Batch_id = ?", [$batchId]);
+        $rows = $this->internationalRows($batchId);
 
         return $this->sendBatch(
             $batchId,
@@ -74,6 +51,53 @@ class MailService
                 . substr((string) $emp->travelDateStart, 0, 10) . ' to ' . substr((string) $emp->travelDateEnd, 0, 10) . '.',
             fn ($emp) => $emp->EmployeeName
         );
+    }
+
+    /** @return array<int,object> */
+    private function domesticRows(string $batchId): array
+    {
+        return DomesticTada::query()
+            ->from('DomesticTada as dt')
+            ->leftJoin('Employee_Information as e', 'dt.EmpPersonalCode', '=', 'e.EmpPersonalCode')
+            ->leftJoin('DistrictMaster as dm', 'dt.District_id', '=', 'dm.District_id')
+            ->leftJoin('DomesticTadaDefinerMasterBylevel as dtd', 'e.LevelName', '=', 'dtd.DomesticTadaDefinerMasterBylevel_name')
+            ->where('dt.domestic_Batch_id', $batchId)
+            ->select([
+                'dt.domestic_tada_id', 'dt.EmpPersonalCode', 'e.EmpName', 'e.Gender', 'e.Email', 'e.Designation', 'e.LevelName',
+                'dm.District_name',
+                'dt.domestic_travel_objective', 'dt.domestic_travelDateStart', 'dt.domestic_travelDateEnd',
+                'dt.domestic_totalday', 'dt.domestic_tada', 'dtd.tadaInNepali',
+            ])
+            ->selectRaw("CASE WHEN dt.domestic_isTwentyPercentExtra = 1 THEN 'Yes' ELSE 'No' END AS isTwentyPercentExtra")
+            ->toBase()
+            ->get()
+            ->all();
+    }
+
+    /** @return array<int,object> */
+    private function internationalRows(string $batchId): array
+    {
+        // Travel days count both end days, minus half a day; countries flagged extra33percent get +33%.
+        $days = '(DATEDIFF(DAY, i.travelDateStart, i.travelDateEnd) + 1 - 0.5)';
+
+        return InternationalTada::query()
+            ->from('International_tada as i')
+            ->leftJoin('CountryMaster as c', 'i.Country_id', '=', 'c.Country_id')
+            ->leftJoin('CityMaster as ci', 'i.City_id', '=', 'ci.City_id')
+            ->leftJoin('TadaDefinerMasterBylevel as t', 'i.TadaDefinerMasterBylevel_id', '=', 't.TadaDefinerMasterBylevel_id')
+            ->leftJoin('Employee_Information as emp', 'i.EmpPersonalCode', '=', 'emp.EmpPersonalCode')
+            ->where('i.Batch_id', $batchId)
+            ->select([
+                'i.Batch_id', 'i.EmpPersonalCode', 'emp.EmpName as EmployeeName', 'emp.Gender', 'emp.Email',
+                'c.Country_name as Country', 'ci.City_name as City', 'i.travel_objective',
+                'i.travelDateStart', 'i.travelDateEnd',
+            ])
+            ->selectRaw("CAST({$days} AS DECIMAL(5,2)) AS totalday")
+            ->selectRaw("CASE WHEN c.extra33percent_country = 1 THEN (t.tadaInUSD * 1.33) * {$days} ELSE t.tadaInUSD * {$days} END AS tadaInUSD_Final")
+            ->selectRaw("CASE WHEN i.DressAllowance = 1 THEN 'Yes' ELSE 'No' END AS DressAllowance")
+            ->toBase()
+            ->get()
+            ->all();
     }
 
     /**
@@ -169,7 +193,7 @@ class MailService
             $table = config('mail.oauth_config_table');
             $rows  = DB::select("SELECT TOP 1 ClientID, ClientSecret, TenantID FROM {$table} ORDER BY ConfigID DESC");
 
-            return $rows[0] ?? null;
+            return $rows->first();
         } catch (Exception $e) {
             $this->log('Could not read MicrosoftOAuthConfig: ' . $e->getMessage());
 

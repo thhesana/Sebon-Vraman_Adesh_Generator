@@ -1,0 +1,1 @@
+@props(['date'])<span class="nepali-date nepali" lang="ne" data-ad-date="{{ $date?->format('Y-m-d') }}">{{ $date?->format('Y-m-d') ?? '-' }}</span>

@@ -26,6 +26,20 @@ class StoreDomesticTadaRequest extends FormRequest
         ];
     }
 
+    /** The batch-wide DomesticTada columns from the validated form. */
+    public function batchAttributes(): array
+    {
+        return [
+            'domestic_form_date' => $this->date('form_date')->toDateString(),
+            'District_id' => $this->integer('district_id'),
+            'domestic_travel_objective' => $this->string('travel_objective')->trim()->toString(),
+            'domestic_travelDateStart' => $this->date('travelDateStart')->toDateString(),
+            'domestic_travelDateEnd' => $this->date('travelDateEnd')->toDateString(),
+            'TadaTypeMaster_id' => $this->integer('tada_type_id'),
+            'tadaverifier_id' => $this->integer('tadaverifier_id'),
+        ];
+    }
+
     public function messages(): array
     {
         return [

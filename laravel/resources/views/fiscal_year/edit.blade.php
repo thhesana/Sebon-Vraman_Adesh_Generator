@@ -2,42 +2,31 @@
 
 @section('title', 'Edit Fiscal Year')
 
-@push('styles')
-<style>
-    .fy-edit-card { width: 100%; max-width: 400px; padding: 20px; background-color: #f8f9fa; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
-    .fy-edit-card h2 { color: #007bff; margin-bottom: 20px; font-size: 24px; }
-    .fy-edit-card label { font-weight: bold; }
-</style>
-@endpush
-
 @section('content')
-<div class="container d-flex justify-content-center align-items-center" style="min-height: 60vh;">
-    <div class="fy-edit-card">
-        <h2 class="text-center">Edit Fiscal Year</h2>
+<div class="page page-narrow">
+    <x-page-header title="Edit Fiscal Year" subtitle="Update the fiscal year" />
+
+    <div class="card">
+        <div class="card-header">Fiscal Year Details</div>
         <form method="POST" action="{{ route('fiscal_years.update', $row) }}">
             @csrf
             @method('PUT')
-            <div class="mb-3">
-                <label for="fy" class="form-label">Fiscal Year:</label>
-                <input type="text" class="form-control" id="fy" name="fy" value="{{ old('fy', $row->fy) }}" required>
+
+            <div class="card-body">
+                <x-form-field name="fy" id="fy" label="Fiscal Year" :value="$row->fy" />
+                <x-form-field name="fy_startdate" id="fy_startdate" type="date" label="Start Date"
+                              :value="\Carbon\Carbon::parse($row->fy_startdate)->format('Y-m-d')" />
+                <x-form-field name="fy_enddate" id="fy_enddate" type="date" label="End Date"
+                              :value="\Carbon\Carbon::parse($row->fy_enddate)->format('Y-m-d')" />
+                <x-select-field name="fy_status" id="fy_status" label="Status"
+                                :options="['ACTIVE' => 'ACTIVE', 'INACTIVE' => 'INACTIVE']"
+                                :selected="$row->fy_status" />
             </div>
-            <div class="mb-3">
-                <label for="fy_startdate" class="form-label">Start Date:</label>
-                <input type="date" class="form-control" id="fy_startdate" name="fy_startdate" value="{{ old('fy_startdate', \Carbon\Carbon::parse($row->fy_startdate)->format('Y-m-d')) }}" required>
+
+            <div class="card-footer d-flex justify-content-end gap-2">
+                <button type="submit" class="btn btn-primary">Update</button>
+                <a href="{{ route('fiscal_years.index') }}" class="btn btn-secondary">Cancel</a>
             </div>
-            <div class="mb-3">
-                <label for="fy_enddate" class="form-label">End Date:</label>
-                <input type="date" class="form-control" id="fy_enddate" name="fy_enddate" value="{{ old('fy_enddate', \Carbon\Carbon::parse($row->fy_enddate)->format('Y-m-d')) }}" required>
-            </div>
-            <div class="mb-3">
-                <label for="fy_status" class="form-label">Status:</label>
-                @php $status = old('fy_status', $row->fy_status); @endphp
-                <select class="form-select" id="fy_status" name="fy_status" required>
-                    <option value="ACTIVE" {{ $status == 'ACTIVE' ? 'selected' : '' }}>ACTIVE</option>
-                    <option value="INACTIVE" {{ $status == 'INACTIVE' ? 'selected' : '' }}>INACTIVE</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary w-100">Update Fiscal Year</button>
         </form>
     </div>
 </div>

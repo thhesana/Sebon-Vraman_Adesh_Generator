@@ -10,8 +10,7 @@ class LevelMasterController extends Controller
     {
         $levels = TadaDefinerLevel::query()
             ->select(['TadaDefinerMasterBylevel_name', 'tadaInUSD', 'createddate'])
-            ->orderByRaw("CASE WHEN TadaDefinerMasterBylevel_name = 'Chairman' THEN 0 ELSE 1 END")
-            ->orderByDesc('tadaInUSD')
+            ->chairmanFirst()
             ->get();
 
         return view('levels.index', compact('levels'));

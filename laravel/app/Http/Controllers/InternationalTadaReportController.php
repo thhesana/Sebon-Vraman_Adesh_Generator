@@ -2,20 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\InternationalTadaService;
+use App\Models\InternationalTada;
 use Illuminate\Http\Request;
 
 class InternationalTadaReportController extends Controller
 {
-    public function __construct(private InternationalTadaService $tada)
-    {
-    }
-
     /** INTL_HOSTORYTADA.php — latest international visit per employee, with search. */
     public function history(Request $request)
     {
         $search = (string) $request->query('search', '');
-        $rows = $this->tada->employeeStatus($search);
+        $rows = InternationalTada::latestVisits($search);
 
         return view('international.history', compact('search', 'rows'));
     }
@@ -24,49 +20,34 @@ class InternationalTadaReportController extends Controller
     public function report(Request $request)
     {
         $filterApplied = $request->query->has('filter_applied');
-        $str = fn (string $k) => trim((string) $request->query($k, ''));
 
-        $filters = [
-            'fy' => $str('fy'),
-            'emp' => $str('emp'),
-            'country' => $str('country'),
-            'city' => $str('city'),
-            'designation' => $str('designation'),
-            'dress' => $str('dress'),
-            'extra33' => $str('extra33'),
-            'batch' => $str('batch'),
-            'date_from' => $str('date_from'),
-            'date_to' => $str('date_to'),
-        ];
+        $filters = collect(['fy', 'emp', 'country', 'city', 'designation', 'dress', 'extra33', 'batch', 'date_from', 'date_to'])
+            ->mapWithKeys(fn (string $key) => [$key => trim((string) $request->query($key, ''))])
+            ->all();
 
-        $lists = $this->tada->reportLists();
+        $lists = InternationalTada::reportFilterOptions();
 
         $records = collect();
-        $grandTotalUSD = 0.0;
         $selectedFYName = '';
 
         if ($filterApplied) {
             if ($filters['fy'] !== '' && $filters['fy'] !== '0') {
-                foreach ($lists['fyList'] as $f) {
-                    if ($f->fiscal_year_master_id == $filters['fy']) {
-                        $selectedFYName = $f->fy;
-                        break;
-                    }
-                }
+                $selectedFYName = $lists['fyList']->firstWhere('fiscal_year_master_id', $filters['fy'])?->fy ?? '';
             }
 
-            $records = $this->tada->reportRecords($filters);
-            foreach ($records as $row) {
-                $grandTotalUSD += (float) ($row->totalUSdrecevid ?? $row->tadaInUSD_Calc ?? 0);
-            }
+            $records = InternationalTada::query()
+                ->with(['employee.designationByName', 'country', 'city', 'tadaLevel', 'fiscalYear'])
+                ->filter($filters)
+                ->orderByDesc('International_tada_id')
+                ->get();
         }
 
-        return view('international.report', array_merge($lists, [
+        return view('international.report', $lists + [
             'filterApplied' => $filterApplied,
             'f' => $filters,
             'records' => $records,
-            'grandTotalUSD' => $grandTotalUSD,
+            'grandTotalUSD' => (float) $records->sum('usd_total'),
             'selectedFYName' => $selectedFYName,
-        ]));
+        ]);
     }
 }

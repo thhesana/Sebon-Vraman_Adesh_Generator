@@ -3,38 +3,27 @@
 @section('title', 'Edit Country')
 
 @section('content')
-<div class="container mt-5">
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">Edit Country</h4>
-        </div>
+<div class="page page-narrow">
+    <x-page-header title="Edit Country" subtitle="Update the country details" />
 
-        <div class="card-body">
+    <div class="card">
+        <div class="card-header">Country Details</div>
+        <form action="{{ route('countries.update', $country) }}" method="POST">
+            @csrf
+            @method('PUT')
 
-            <form action="{{ route('countries.update', $country) }}" method="POST">
-                @csrf
-                @method('PUT')
+            <div class="card-body">
+                <x-form-field name="Country_name" label="Country Name" :value="$country->Country_name" />
 
-                <div class="mb-3">
-                    <label class="form-label">Country Name</label>
-                    <input type="text" name="Country_name" class="form-control"
-                           value="{{ old('Country_name', $country->Country_name) }}" required>
-                </div>
+                <x-select-field name="extra33percent_country" label="Extra 33%?"
+                                :options="[1 => 'Yes', 0 => 'No']" :selected="$country->extra33percent_country" />
+            </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Extra 33%?</label>
-                    <select name="extra33percent_country" class="form-control">
-                        <option value="1" {{ old('extra33percent_country', $country->extra33percent_country) == 1 ? 'selected' : '' }}>Yes</option>
-                        <option value="0" {{ old('extra33percent_country', $country->extra33percent_country) == 0 ? 'selected' : '' }}>No</option>
-                    </select>
-                </div>
-
-                <div class="d-flex justify-content-end gap-2">
-                    <a href="{{ route('countries.index') }}" class="btn btn-secondary">Cancel</a>
-                    <button type="submit" class="btn btn-primary">Update</button>
-                </div>
-            </form>
-        </div>
+            <div class="card-footer d-flex justify-content-end gap-2">
+                <button type="submit" class="btn btn-primary">Update</button>
+                <a href="{{ route('countries.index') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
     </div>
 </div>
 @endsection

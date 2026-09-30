@@ -1,59 +1,73 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Vraman Adesh Generator
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel 12 application for the Securities Board of Nepal (SEBON) that generates and tracks **domestic** and
+**international travel orders (TADA)**: employees, levels, countries, cities, districts, fiscal years, USD/NPR rates,
+reports, printable orders and per-employee notification mails. It is a conversion of the former `*.php` application and runs
+against the **existing SQL Server schema** (there are no migrations).
 
-## About Laravel
+## Setup
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Requirements: PHP 8.2+, Composer, SQL Server, and the PHP `sqlsrv` + `pdo_sqlsrv` extensions
+(Microsoft Drivers for PHP for SQL Server) enabled in `php.ini`.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+```bash
+composer install
+cp .env.example .env        # then edit it
+php artisan key:generate
+php artisan serve           # or point Apache/IIS at public/
+```
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Important `.env` values: `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`,
+`MAIL_SENDER_EMAIL`, `MAIL_SENDER_NAME`, `OAUTH_CONFIG_TABLE` (see Mail). Do not run `migrate` or seeders against
+the production database; the schema is managed outside this project.
 
-## Learning Laravel
+Assets are plain files under `public/css` and `public/js` (no build step); Bootstrap, Chart.js, jQuery and Select2 come from CDNs.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## Structure
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- `routes/web.php` is the route contract (resource controllers, all application routes behind `auth`).
+- `app/Http/Controllers`, `app/Http/Requests` (FormRequests), `app/Models` (Eloquent on the legacy tables), `app/Services`
+  (TADA calculation, reports, USD forex, mail).
+- `resources/views` uses one layout (`layouts/app`), anonymous components in `components/` (search form, data table,
+  form and select fields, pagination) and per-page assets in `public/css/<area>` and `public/js/<area>`.
 
-## Laravel Sponsors
+## Routes overview
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+| Area | Routes |
+|------|--------|
+| Auth | `/login`, `/logout`, `/change-password` (plain-text passwords are forced to change to a hash) |
+| Dashboard | `/dashboard` (last 12 months, chart) |
+| USD rate | `/usd-rates`, `/usd-converter` (fetches the NRB rate and stores it via `sp_UpsertUSDForex`) |
+| Master data | `/levels`, `/countries`, `/cities`, `/districts`, `/employees`, `/fiscal-years` |
+| Domestic TADA | `/domestic-tada` (+ `/{batch}/edit`, `/{batch}/print`, `/report`) |
+| International TADA | `/international-tada` (+ `/{batch}/edit`, `/{batch}/print`, `/history`, `/report`) |
 
-### Premium Partners
+`php artisan route:list --except-vendor` shows the full list.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## Mail
 
-## Contributing
+`App\Services\MailService` sends the batch notification mails with PHPMailer over Office 365 SMTP using **XOAUTH2**
+(client-credentials flow, `MicrosoftClientCredentialsProvider`). `ClientID`, `ClientSecret` and `TenantID` are read
+(latest row) from the `MicrosoftOAuthConfig` table, whose cross-database name is `OAUTH_CONFIG_TABLE`. Recipients come from
+`Employee_Information`; a batch is marked sent in `BatchMailQueue` only when every mail succeeded, so failed batches can be retried.
+Progress and failures are written to `storage/logs/mail.log`.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Queue / after-response dispatch
 
-## Code of Conduct
+Mails are slow, so the controllers use `SendBatchMails::dispatchAfterResponse('Domestic'|'International', $batchId)`:
+the job runs in the same PHP process right after the HTTP response is sent, so no queue worker is required and
+`QUEUE_CONNECTION=sync` is fine. (If a worker is ever needed, switch to `dispatch()` and set up the `jobs` table and a worker.)
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Legacy URL redirects
 
-## Security Vulnerabilities
+`routes/legacy.php` 301-redirects every old `*.php` URL (for example `dashboard.php`, `usd_rate.php`,
+`EditDomesticTada.php?batch_id=...`, `employee_edit.php?code=...`) to its named route, so existing bookmarks keep working.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Tests
 
-## License
+```bash
+php artisan test
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Feature tests cover guest redirects for every protected route, the login page, the legacy redirects and view rendering.
+`phpunit.xml` forces an in-memory SQLite connection, so tests never reach SQL Server.

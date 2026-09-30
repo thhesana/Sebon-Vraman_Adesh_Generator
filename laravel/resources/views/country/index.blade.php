@@ -3,42 +3,32 @@
 @section('title', 'Country List')
 
 @section('content')
-<div class="container mt-4">
-    <h3 class="text-center mb-4">Country List</h3>
+<div class="page">
+    <x-page-header title="Country List" subtitle="Countries and their Extra 33% eligibility" />
 
-    <!-- SEARCH BOX -->
-    <form method="get" action="{{ route('countries.index') }}" class="mb-3 text-center">
-        <input type="text" name="search" value="{{ $search }}"
-               placeholder="Search Country..." class="form-control w-50 d-inline-block">
-        <button type="submit" class="btn btn-primary">Search</button>
-    </form>
+    <x-search-form :action="route('countries.index')" :search="$search" placeholder="Search Country..." />
 
-    <table class="table table-bordered table-striped">
-        <thead class="bg-primary text-white">
+    <x-data-table :headings="['Country ID', 'Country Name', 'Extra 33%?', 'Actions']">
+        @forelse ($countries as $row)
             <tr>
-                <th>Country ID</th>
-                <th>Country Name</th>
-                <th>Extra 33%?</th>
-                <th style="width: 150px;">Actions</th>
+                <td class="num">{{ $row->Country_id }}</td>
+                <td>{{ $row->Country_name }}</td>
+                <td>
+                    @if ($row->extra33percent_country == 1)
+                        <span class="badge badge-soft-success">Yes</span>
+                    @else
+                        <span class="badge badge-soft-muted">No</span>
+                    @endif
+                </td>
+                <td>
+                    <a href="{{ route('countries.edit', $row) }}" class="btn btn-sm btn-primary">Edit</a>
+                </td>
             </tr>
-        </thead>
+        @empty
+            <x-empty-row colspan="4" message="No countries found" />
+        @endforelse
+    </x-data-table>
 
-        <tbody>
-            @forelse ($countries as $row)
-                <tr>
-                    <td>{{ $row->Country_id }}</td>
-                    <td>{{ $row->Country_name }}</td>
-                    <td>{{ $row->extra33percent_country == 1 ? 'Yes' : 'No' }}</td>
-                    <td>
-                        <a href="{{ route('countries.edit', $row) }}" class="btn btn-sm btn-primary">Edit</a>
-                    </td>
-                </tr>
-            @empty
-                <tr><td colspan="4" class="text-center">No countries found</td></tr>
-            @endforelse
-        </tbody>
-    </table>
-
-    <div class="d-flex justify-content-center">{{ $countries->links() }}</div>
+    <x-pagination :paginator="$countries" />
 </div>
 @endsection

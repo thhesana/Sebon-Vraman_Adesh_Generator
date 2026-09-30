@@ -2,59 +2,41 @@
 
 @section('title', 'Employee List')
 
+@push('styles')
+<link href="{{ asset('css/employee/index.css') }}" rel="stylesheet">
+@endpush
+
 @section('content')
-<h2 class="text-center mt-4">Employee List</h2>
-<div class="container mt-3">
+<div class="page">
+    <x-page-header title="Employee List" subtitle="Search filters the list as you type">
+        <a href="{{ route('employees.create') }}" class="btn btn-primary">Add Employee</a>
+    </x-page-header>
 
-    <a href="{{ route('employees.create') }}" class="btn btn-success mb-3 float-end">Add New Employee</a>
+    <div class="toolbar">
+        <input type="search" id="searchInput" class="form-control employee-search" placeholder="Search employees..." aria-label="Search employees">
+    </div>
 
-    <input type="text" id="searchInput" class="form-control mb-3" placeholder="Search employees...">
-
-    <table class="table table-bordered table-striped" id="empTable">
-        <thead class="bg-primary text-white">
+    <x-data-table id="empTable" :headings="['S.N.', 'Name', 'Name (Nepali)', 'Designation', 'Level', 'Gender', 'Email', 'Action']">
+        @forelse ($employees as $row)
             <tr>
-                <th>S.N.</th>
-                <th style="display:none;">Code</th>
-                <th>Name</th>
-                <th>Name (Nepali)</th>
-                <th>Designation</th>
-                <th>Level</th>
-                <th>Gender</th>
-                <th>Email</th>
-                <th>Action</th>
+                <td class="num">{{ $loop->iteration }}</td>
+                <td>{{ $row->EmpName }}</td>
+                <td><span class="nepali" lang="ne">{{ $row->EmpNameInNepali }}</span></td>
+                <td>{{ $row->Designation }}</td>
+                <td>{{ $row->LevelName }}</td>
+                <td>{{ $row->Gender }}</td>
+                <td>{{ $row->Email }}</td>
+                <td>
+                    <a href="{{ route('employees.edit', $row) }}" class="btn btn-sm btn-primary">Edit</a>
+                </td>
             </tr>
-        </thead>
-        <tbody>
-            @foreach ($employees as $row)
-                <tr>
-                    <td>{{ $loop->iteration }}</td>
-                    <td style="display:none;">{{ $row->EmpPersonalCode }}</td>
-                    <td>{{ $row->EmpName }}</td>
-                    <td>{{ $row->EmpNameInNepali }}</td>
-                    <td>{{ $row->Designation }}</td>
-                    <td>{{ $row->LevelName }}</td>
-                    <td>{{ $row->Gender }}</td>
-                    <td>{{ $row->Email }}</td>
-                    <td>
-                        <a href="{{ route('employees.edit', $row) }}"
-                           class="btn btn-primary btn-sm">Edit</a>
-                    </td>
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
+        @empty
+            <x-empty-row colspan="8" message="No employees found" />
+        @endforelse
+    </x-data-table>
 </div>
 @endsection
 
 @push('scripts')
-<script>
-document.getElementById("searchInput").addEventListener("keyup", function() {
-    let value = this.value.toLowerCase();
-    let rows = document.querySelectorAll("#empTable tbody tr");
-
-    rows.forEach(row => {
-        row.style.display = row.innerText.toLowerCase().includes(value) ? "" : "none";
-    });
-});
-</script>
+<script src="{{ asset('js/employee/index.js') }}"></script>
 @endpush

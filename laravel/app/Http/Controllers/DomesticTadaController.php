@@ -2,75 +2,70 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\Domestic\CreateBatch;
+use App\Actions\Domestic\UpdateBatch;
 use App\Http\Requests\StoreDomesticTadaRequest;
 use App\Http\Requests\UpdateDomesticTadaRequest;
-use App\Services\DomesticTadaService;
-use App\Services\MailService;
+use App\Jobs\SendBatchMails;
+use App\Models\District;
+use App\Models\DomesticTada;
+use App\Models\Employee;
+use App\Models\FiscalYear;
+use App\Models\TadaVerifier;
+use App\Models\TravelType;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class DomesticTadaController extends Controller
 {
-    public function __construct(
-        private DomesticTadaService $tada,
-        private MailService $mail,
-    ) {
-    }
+    private const PER_PAGE = 5;
 
     public function index(Request $request): View
     {
         $search = trim((string) $request->query('search', ''));
 
-        return view('domestic.index', ['searchName' => $search] + $this->tada->batchListing($search));
+        // Pages hold whole batches: paginate the batch ids, then load every row of those batches.
+        $batches = DomesticTada::batchSummaries($search)->paginate(self::PER_PAGE)->withQueryString();
+        $records = DomesticTada::listing($batches->pluck('domestic_Batch_id'))->get();
+
+        return view('domestic.index', [
+            'searchName' => $search,
+            'batches' => $batches,
+            'records' => $records,
+            'totalRecords' => DomesticTada::employeeNameLike($search)->count(),
+            'totalRecordsOnPage' => $records->count(),
+        ]);
     }
 
     public function create(): View
     {
-        $this->requireFiscalYearId();
+        $this->currentFiscalYearId();
 
         return view('domestic.add', [
-            'nextBatch' => $this->tada->nextBatchId(),
-            'nextChalani' => $this->tada->nextChalani(),
-            'districts' => $this->tada->districts(),
-            'tadaTypes' => $this->tada->travelTypes(),
-            'verifiers' => $this->tada->verifiers(),
-            'employees' => $this->tada->employeesWithRate(),
-        ]);
+            'nextBatch' => DomesticTada::nextBatchId(),
+            'nextChalani' => DomesticTada::nextChalani(),
+        ] + $this->formLookups());
     }
 
-    public function store(StoreDomesticTadaRequest $request): RedirectResponse
+    public function store(StoreDomesticTadaRequest $request, CreateBatch $createBatch): RedirectResponse
     {
-        $fiscalYearId = $this->requireFiscalYearId();
-
-        $start = date('Y-m-d', strtotime($request->input('travelDateStart')));
-        $end = date('Y-m-d', strtotime($request->input('travelDateEnd')));
-
-        $batchId = $this->tada->nextBatchId();
-        $result = $this->tada->createBatch($batchId, [
-            'form_date' => date('Y-m-d', strtotime($request->input('form_date'))),
-            'district_id' => (int) $request->input('district_id'),
-            'travel_objective' => trim($request->input('travel_objective')),
-            'travelDateStart' => $start,
-            'travelDateEnd' => $end,
-            'is_twenty_percent_extra' => $request->has('is_twenty_percent_extra') ? 1 : 0,
-            'tada_type_id' => (int) $request->input('tada_type_id'),
-            'tadaverifier_id' => (int) $request->input('tadaverifier_id'),
-        ], explode(',', (string) $request->input('employee_data')), $fiscalYearId, $request->user()->getKey());
+        $result = $createBatch(
+            $request->batchAttributes(),
+            $request->has('is_twenty_percent_extra'),
+            (string) $request->input('employee_data'),
+            $this->currentFiscalYearId(),
+            $request->user()->getKey(),
+        );
 
         if ($result['inserted'] > 0) {
-            try {
-                $this->mail->sendDomesticBatch($batchId);
-            } catch (\Throwable $e) {
-                Log::error('Domestic batch mail failed: '.$e->getMessage());
-            }
+            SendBatchMails::dispatchAfterResponse('Domestic', $result['batchId']);
 
             $range = ($result['firstChalani'] == $result['lastChalani'])
                 ? "Chalani #: {$result['firstChalani']}"
                 : "Chalani #: {$result['firstChalani']} - {$result['lastChalani']}";
             $redirect = redirect()->route('domestic.index')
-                ->with('success', "✅ Batch {$batchId} created successfully!\n{$range}\nEmployees Added: {$result['inserted']}");
+                ->with('success', "✅ Batch {$result['batchId']} created successfully!\n{$range}\nEmployees Added: {$result['inserted']}");
             if (! empty($result['errors'])) {
                 $redirect->with('warning', "Warnings:\n".implode("\n", $result['errors']));
             }
@@ -93,92 +88,104 @@ class DomesticTadaController extends Controller
     {
         $header = $this->findBatch($batch);
 
+        $existingEmployees = DomesticTada::batch($batch)
+            ->with('employee.level')
+            ->orderBy('domestic_tada_id')
+            ->get()
+            ->map(fn (DomesticTada $row) => [
+                'code' => $row->EmpPersonalCode,
+                'name' => $row->employee?->EmpName,
+                'level' => $row->employee?->level_label ?? 'No Level',
+                'rate' => $row->employee?->domestic_rate ?? DomesticTada::DEFAULT_RATE,
+                'extra' => $row->domestic_isTwentyPercentExtra,
+            ]);
+
         return view('domestic.edit', [
             'batchId' => $batch,
             'batch' => $header,
-            'batchEmployees' => $this->tada->batchEmployees($batch),
-            'districts' => $this->tada->districts(),
-            'tadaTypes' => $this->tada->travelTypes(),
-            'verifiers' => $this->tada->verifiers(),
-            'allEmployees' => $this->tada->employeesWithRate(),
-        ]);
+            'existingEmployees' => $existingEmployees,
+        ] + $this->formLookups());
     }
 
-    public function update(UpdateDomesticTadaRequest $request, string $batch): RedirectResponse
+    public function update(UpdateDomesticTadaRequest $request, string $batch, UpdateBatch $updateBatch): RedirectResponse
     {
         $header = $this->findBatch($batch);
 
-        $start = date('Y-m-d', strtotime($request->input('travelDateStart')));
-        $end = date('Y-m-d', strtotime($request->input('travelDateEnd')));
-        $totalDays = $this->tada->totalDays($start, $end);
-
-        $fiscalYearId = $this->tada->currentFiscalYearId() ?? $header->fiscal_year_master_id;
+        $fiscalYearId = FiscalYear::current()?->getKey() ?? $header->fiscal_year_master_id;
         if ($fiscalYearId === null) {
             return back()->withInput()->with('error', '⚠️ No active fiscal year found. Cannot save.');
         }
 
-        [$payloads, $preErrors] = $this->tada->preparePayloads((string) $request->input('employee_data'), $totalDays);
+        $result = $updateBatch(
+            $batch,
+            $request->batchAttributes(),
+            (string) $request->input('employee_data'),
+            (int) $fiscalYearId,
+            $request->user()->getKey(),
+        );
+        $warnings = $result['warnings'];
 
-        if (empty($payloads)) {
+        if ($result['noValidEmployees']) {
             $msg = '❌ No valid employees to save.';
-            if (! empty($preErrors)) {
-                $msg .= "\n\n".implode("\n", $preErrors);
+            if (! empty($warnings)) {
+                $msg .= "\n\n".implode("\n", $warnings);
             }
 
             return back()->withInput()->with('error', $msg);
         }
-
-        $result = $this->tada->updateBatch($batch, [
-            'form_date' => date('Y-m-d', strtotime($request->input('form_date'))),
-            'district_id' => (int) $request->input('district_id'),
-            'travel_objective' => trim($request->input('travel_objective')),
-            'travelDateStart' => $start,
-            'travelDateEnd' => $end,
-            'tada_type_id' => (int) $request->input('tada_type_id'),
-            'tadaverifier_id' => (int) $request->input('tadaverifier_id'),
-        ], $payloads, (int) $fiscalYearId, $request->user()->getKey());
 
         if ($result['ok']) {
             $redirect = redirect()->route('domestic.index')->with(
                 'success',
                 "✅ Batch {$batch} updated successfully!\nUpdated: {$result['updated']} | Added: {$result['inserted']} | Removed: {$result['deleted']}"
             );
-            if (! empty($preErrors)) {
-                $redirect->with('warning', "Warnings:\n".implode("\n", $preErrors));
+            if (! empty($warnings)) {
+                $redirect->with('warning', "Warnings:\n".implode("\n", $warnings));
             }
 
             return $redirect;
         }
 
-        return back()->withInput()->with('error', "❌ Update failed — NO records were changed.\n".implode("\n", array_merge($preErrors, $result['errors'])));
+        return back()->withInput()->with('error', "❌ Update failed — NO records were changed.\n".implode("\n", array_merge($warnings, $result['errors'])));
     }
 
     public function print(string $batch): View
     {
-        $records = $this->tada->printRecords($batch);
+        $records = DomesticTada::forPrint($batch)->get();
         abort_if($records->isEmpty(), 404, 'No records found for this batch!');
 
         return view('domestic.print', ['batchId' => $batch, 'records' => $records]);
     }
 
-    private function findBatch(string $batch): object
+    /** Dropdown data shared by the add and edit forms. */
+    private function formLookups(): array
     {
-        $header = $this->tada->batchHeader($batch);
+        return [
+            'districts' => District::orderBy('District_name')->pluck('District_name', 'District_id'),
+            'tadaTypes' => TravelType::orderBy('type')->pluck('type', 'TadaTypeMaster_id'),
+            'verifiers' => TadaVerifier::orderBy('tadaverifierPost')->pluck('tadaverifierPost', 'tadaverifier_id'),
+            'employees' => Employee::with('level')->orderBy('EmpName')->get(),
+        ];
+    }
+
+    private function findBatch(string $batch): DomesticTada
+    {
+        $header = DomesticTada::batch($batch)->first();
         abort_if(! $header, 404, 'Batch not found!');
 
         return $header;
     }
 
-    private function requireFiscalYearId(): int
+    private function currentFiscalYearId(): int
     {
-        $fiscalYearId = $this->tada->currentFiscalYearId();
-        if ($fiscalYearId === null) {
+        $fiscalYear = FiscalYear::current();
+        if ($fiscalYear === null) {
             abort(response("<div style='background: #fee; padding: 20px; border-radius: 5px; color: #c00;'>
         <h3>❌ Fiscal Year Not Found!</h3>
         <p>No active fiscal year found for today's date. Please configure fiscal year master table.</p>
         </div>", 500));
         }
 
-        return $fiscalYearId;
+        return (int) $fiscalYear->getKey();
     }
 }

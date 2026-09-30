@@ -1,0 +1,7 @@
+/* Domestic add / edit batch form: layout for the employee picker only (the look comes from theme.css). */
+.select2-container { width: 100% !important; }
+.employee-selector { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1rem; align-items: flex-start; }
+.employee-selector > .select2-container, .employee-selector > select { flex: 1 1 18rem; min-width: 0; }
+.employee-selector .btn { white-space: nowrap; }
+#employeeTable .col-index { width: 3rem; }
+#employeeTable .col-center { text-align: center; }

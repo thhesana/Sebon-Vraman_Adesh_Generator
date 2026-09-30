@@ -7,80 +7,30 @@
 @endpush
 
 @section('content')
-<h2 class="text-center mt-4">Edit Employee</h2>
-<div class="container mt-3">
-<form method="POST" action="{{ route('employees.update', $emp) }}">
-    @csrf
-    @method('PUT')
+<div class="page page-narrow">
+    <x-page-header title="Edit Employee" subtitle="Update the employee details" />
 
-    <div class="mb-3">
-        <label>Employee Code:</label>
-        <input type="text" value="{{ $emp->EmpPersonalCode }}" class="form-control" readonly>
+    <div class="card">
+        <div class="card-header">Employee Details</div>
+        <form method="POST" action="{{ route('employees.update', $emp) }}">
+            @csrf
+            @method('PUT')
+
+            <div class="card-body">
+                @include('employee._form')
+            </div>
+
+            <div class="card-footer d-flex justify-content-end gap-2">
+                <button type="submit" class="btn btn-primary">Update</button>
+                <a href="{{ route('employees.index') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
     </div>
-
-    <div class="mb-3">
-        <label>Name in Nepali:</label>
-        <input type="text" name="EmpNameInNepali" value="{{ old('EmpNameInNepali', $emp->EmpNameInNepali) }}" class="form-control" required>
-    </div>
-
-    <div class="mb-3">
-        <label>Name in English:</label>
-        <input type="text" name="EmpName" value="{{ old('EmpName', $emp->EmpName) }}" class="form-control" required>
-    </div>
-
-    <div class="mb-3">
-        <label>Designation:</label>
-        <select name="Designation" id="designation" class="form-control" required>
-            @foreach ($designations as $d)
-                <option value="{{ $d->designationType }}"
-                    {{ $d->designationType == old('Designation', $emp->Designation) ? 'selected' : '' }}>
-                    {{ $d->designationType }}
-                </option>
-            @endforeach
-        </select>
-    </div>
-
-    <div class="mb-3">
-        <label>Level:</label>
-        <select name="LevelName" id="level" class="form-control" required>
-            @foreach ($levels as $l)
-                <option value="{{ $l->levelName }}"
-                    {{ $l->levelName == old('LevelName', $emp->LevelName) ? 'selected' : '' }}>
-                    {{ $l->levelName }}
-                </option>
-            @endforeach
-        </select>
-    </div>
-
-    <div class="mb-3">
-        <label>Gender:</label>
-        <select name="Gender" class="form-control" required>
-            @php $gender = old('Gender', $emp->Gender); @endphp
-            <option {{ $gender == 'Male' ? 'selected' : '' }}>Male</option>
-            <option {{ $gender == 'Female' ? 'selected' : '' }}>Female</option>
-            <option {{ $gender == 'Other' ? 'selected' : '' }}>Other</option>
-        </select>
-    </div>
-
-    <div class="mb-3">
-        <label>Email:</label>
-        <input type="email" name="Email" value="{{ old('Email', $emp->Email) }}" class="form-control" required>
-    </div>
-
-    <button class="btn btn-primary">Update Employee</button>
-    <a href="{{ route('employees.index') }}" class="btn btn-secondary">Back</a>
-
-</form>
 </div>
 @endsection
 
 @push('scripts')
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script>
-$(document).ready(function() {
-    $('#designation').select2();
-    $('#level').select2();
-});
-</script>
+<script src="{{ asset('js/employee/form.js') }}"></script>
 @endpush

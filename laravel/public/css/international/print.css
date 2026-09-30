@@ -1,0 +1,54 @@
+/* International TADA print forms (Schedule 5): document layout only.
+   Fonts and sizes come from theme.css (Kalimati for Devanagari, Inter for Latin/digits). */
+.print-controls { position: fixed; top: 1rem; right: 1rem; z-index: 1000; display: flex; align-items: center; gap: .75rem; background: #fff; padding: .5rem .75rem; border: 1px solid var(--gray-200); border-radius: var(--radius); box-shadow: var(--shadow-md); }
+
+.print-container { width: 210mm; min-height: 297mm; height: auto; margin: 1rem auto; background: #fff; padding: 10mm 10mm 8mm 10mm; box-shadow: var(--shadow-md); position: relative; display: flex; flex-direction: column; }
+.header { text-align: center; margin-bottom: 10px; }
+.header-line { margin: 1px 0; line-height: 1.2; text-align: center; }
+.header-number-date { text-align: right; margin: 3px 0 10px 0; }
+.form-info { margin: 6px 0; line-height: 1.3; }
+.form-info div { margin: 2px 0; }
+
+.doc-table { width: 100%; border-collapse: collapse; margin: 6px 0; }
+.doc-table, .doc-table th, .doc-table td { border: 1px solid #000; }
+.doc-table th, .doc-table td { padding: 4px 6px; text-align: left; vertical-align: middle; line-height: 1.3; }
+.doc-table th { text-align: center; line-height: 1.2; }
+.doc-table .col-sn { width: 5%; }
+.doc-table .col-desc { width: 30%; }
+.doc-table .col-rate { width: 10%; }
+.doc-table .col-days { width: 7%; }
+.doc-table .col-usd { width: 13%; }
+.doc-table .col-fx { width: 15%; }
+.doc-table .col-npr { width: 20%; }
+.doc-table .row-tall { height: 50px; }
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+
+.bottom-section { display: flex; width: 100%; margin-top: 10px; flex-shrink: 0; gap: 5px; page-break-inside: avoid; }
+.bottom-left { flex: 0 0 32%; vertical-align: top; }
+.bottom-right { flex: 0 0 66%; border: 1px solid #000; padding: 8px 10px; min-height: 120px; vertical-align: top; }
+.bottom-right-title { text-align: center; margin-bottom: 6px; }
+.bottom-right-subtitle { margin: 6px 0; text-align: center; }
+.bottom-right-content { margin: 6px 0; line-height: 1.4; word-wrap: break-word; white-space: normal; }
+.bottom-right-signatures { display: flex; justify-content: space-between; margin-top: 12px; gap: 12px; }
+.bottom-right-sig-left { flex: 1; white-space: nowrap; }
+.bottom-right-sig-right { flex: 1; text-align: right; white-space: nowrap; }
+.sign-dots { margin: 25px 0 8px 0; }
+.gap-xs { margin-top: 4px; }
+.gap-sm { margin-top: 8px; }
+.gap-lg { margin-top: 20px; }
+
+@media print {
+    .no-print { display: none !important; }
+    @page { size: A4; margin: 10mm 8mm 8mm 10mm; }
+    body { margin: 0; padding: 0; background: #fff; }
+    .page-break { page-break-after: always; page-break-inside: avoid; }
+    .print-container { width: 100% !important; height: auto !important; min-height: auto !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; page-break-after: always; }
+    .header, .header-line { text-align: center !important; }
+    .bottom-section { display: flex !important; gap: 5px !important; page-break-inside: avoid !important; }
+    .bottom-left { flex: 0 0 32% !important; width: 32% !important; }
+    .bottom-right { flex: 0 0 66% !important; width: 66% !important; }
+    .bottom-right-content { white-space: normal !important; word-wrap: break-word !important; }
+    .doc-table { width: 100% !important; }
+    .doc-table th, .doc-table td { border: 1px solid #000 !important; }
+}

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class District extends Model
 {
@@ -14,6 +15,11 @@ class District extends Model
     public $timestamps = false;
 
     protected $guarded = [];
+
+    public function domesticTadas(): HasMany
+    {
+        return $this->hasMany(DomesticTada::class, 'District_id', 'District_id');
+    }
 
     public function scopeSearch(Builder $query, ?string $term): void
     {

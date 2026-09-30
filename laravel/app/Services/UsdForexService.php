@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\UsdForex;
 use Exception;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -77,14 +77,12 @@ class UsdForexService
     public function saveRate(string $date, float $amount): array
     {
         try {
-            $rows = DB::select('EXEC sp_UpsertUSDForex ?, ?', [date('Y-m-d', strtotime($date)), $amount]);
+            $result = UsdForex::upsertRate($date, $amount);
         } catch (Exception $e) {
             Log::error('sp_UpsertUSDForex failed: ' . $e->getMessage());
 
             return ['success' => false, 'message' => $e->getMessage()];
         }
-
-        $result = (array) ($rows[0] ?? []);
 
         return [
             'success'   => true,
@@ -95,3 +93,4 @@ class UsdForexService
         ];
     }
 }
+

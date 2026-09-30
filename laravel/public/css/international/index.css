@@ -1,0 +1,4 @@
+/* International records list: layout only. */
+.intl-records tbody tr.batch-group > td { border-top: 2px solid var(--brand-500); }
+.intl-records thead th:nth-child(6),
+.intl-records thead th:nth-child(7) { text-align: right; }

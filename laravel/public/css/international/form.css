@@ -1,0 +1,6 @@
+/* International add / edit form: layout only. Fonts, colours and components come from theme.css. */
+.intl-form .select2-container { width: 100% !important; }
+.intl-form .intl-loading { display: none; }
+.intl-form textarea.form-control { min-height: 6rem; resize: vertical; }
+.intl-employees .intl-col-sn { width: 3rem; }
+.intl-employees .dress-allowance-check { width: 1.15rem; height: 1.15rem; cursor: pointer; }

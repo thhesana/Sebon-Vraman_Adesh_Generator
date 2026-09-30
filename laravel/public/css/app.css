@@ -1,0 +1,55 @@
+/* Application shell: top bar, navigation, footer, loading overlay. */
+html, body { min-height: 100%; }
+body { display: flex; flex-direction: column; min-height: 100vh; }
+main { flex: 1 0 auto; }
+
+/* ---- Top bar ---- */
+.topbar { background: var(--brand-900); color: #fff; }
+.topbar-inner { max-width: 1280px; margin: 0 auto; padding: .625rem 1rem; display: flex; align-items: center; gap: 1rem; }
+.brand { display: flex; align-items: center; gap: .75rem; color: #fff; text-decoration: none; }
+.brand:hover { color: #fff; text-decoration: none; }
+.brand img { height: 40px; width: auto; background: #fff; border-radius: 8px; padding: 3px; }
+.brand-title { font-size: var(--fs-lg); font-weight: 600; letter-spacing: .02em; line-height: 1.2; }
+.brand-sub { display: block; font-size: var(--fs-xs); font-weight: 400; color: #b6c8e6; letter-spacing: 0; }
+.topbar-user { margin-left: auto; display: flex; align-items: center; gap: .75rem; }
+.user-chip { display: flex; align-items: center; gap: .5rem; font-size: var(--fs-sm); color: #dbe8fa; }
+.user-avatar { width: 34px; height: 34px; border-radius: 50%; background: var(--brand-500); color: #fff; display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: var(--fs-sm); text-transform: uppercase; }
+.btn-logout { background: transparent; color: #fff; border: 1px solid rgba(255, 255, 255, .35); padding: .375rem .875rem; border-radius: var(--radius-sm); font-size: var(--fs-sm); font-weight: 500; }
+.btn-logout:hover { background: rgba(255, 255, 255, .12); border-color: #fff; }
+.logout-form { margin: 0; }
+
+/* ---- Main navigation ---- */
+.mainnav { background: #fff; border-bottom: 1px solid var(--gray-200); box-shadow: var(--shadow-sm); position: sticky; top: 0; z-index: 1020; }
+.mainnav-inner { max-width: 1280px; margin: 0 auto; padding: 0 1rem; display: flex; flex-wrap: wrap; gap: .25rem; }
+.mainnav .nav-link { display: inline-flex; align-items: center; gap: .375rem; padding: .875rem .875rem; font-size: var(--fs-sm); font-weight: 500; color: var(--gray-700); border-bottom: 3px solid transparent; border-radius: 0; text-decoration: none; }
+.mainnav .nav-link:hover { color: var(--brand-600); background: var(--brand-50); text-decoration: none; }
+.mainnav .nav-link.active, .mainnav .nav-item.active > .nav-link { color: var(--brand-700); border-bottom-color: var(--brand-600); }
+.mainnav .dropdown-toggle::after { margin-left: .25rem; }
+.mainnav .dropdown-menu { border: 1px solid var(--gray-200); border-radius: var(--radius-sm); box-shadow: var(--shadow-md); padding: .375rem; margin-top: 0; min-width: 14rem; font-size: var(--fs-sm); }
+.mainnav .dropdown-item { border-radius: var(--radius-sm); padding: .5rem .75rem; color: var(--gray-700); }
+.mainnav .dropdown-item:hover, .mainnav .dropdown-item:focus { background: var(--brand-50); color: var(--brand-700); }
+.mainnav .dropdown-item.active { background: var(--brand-100); color: var(--brand-800); font-weight: 500; }
+.mainnav .dropdown-header { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .05em; color: var(--gray-500); }
+@media (min-width: 992px) { .mainnav .dropdown:hover > .dropdown-menu { display: block; } }
+
+/* ---- Flash messages ---- */
+.flash-messages { max-width: 1280px; margin: 1rem auto 0; padding: 0 1rem; }
+.flash-messages .alert { margin-bottom: .5rem; }
+
+/* ---- Footer ---- */
+.app-footer { background: var(--brand-900); color: #b6c8e6; text-align: center; padding: 1rem 0; font-size: var(--fs-xs); margin-top: auto; }
+.app-footer p { margin: .125rem 0; }
+
+/* ---- Loading overlay ---- */
+.spinner-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 26, 61, .55); z-index: 9999; justify-content: center; align-items: center; }
+.spinner-overlay.active { display: flex; }
+.spinner { border: 4px solid rgba(255, 255, 255, .35); border-top-color: #fff; border-radius: 50%; width: 48px; height: 48px; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 767px) {
+    .brand-sub { display: none; }
+    .user-chip span.user-name { display: none; }
+    .mainnav-inner { overflow-x: auto; flex-wrap: nowrap; }
+}
+
+@media print { .topbar, .mainnav, .app-footer, .flash-messages, .spinner-overlay { display: none !important; } }

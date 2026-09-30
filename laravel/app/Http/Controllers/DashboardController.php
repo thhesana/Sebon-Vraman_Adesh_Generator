@@ -6,6 +6,7 @@ use App\Models\DomesticTada;
 use App\Models\InternationalTada;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class DashboardController extends Controller
 {
@@ -13,43 +14,38 @@ class DashboardController extends Controller
     {
         $since = Carbon::now()->subMonths(12);
 
-        $totalDom = DomesticTada::where('domestic_travelDateStart', '>=', $since)->count();
-        $totalInt = InternationalTada::where('travelDateStart', '>=', $since)->count();
+        $domDates = DomesticTada::where('domestic_travelDateStart', '>=', $since)->pluck('domestic_travelDateStart');
+        $intDates = InternationalTada::where('travelDateStart', '>=', $since)->pluck('travelDateStart');
 
-        $domMap = $this->monthMap(DomesticTada::class, 'domestic_travelDateStart', $since);
-        $intMap = $this->monthMap(InternationalTada::class, 'travelDateStart', $since);
+        $domMap = $this->countByMonth($domDates);
+        $intMap = $this->countByMonth($intDates);
 
         $labels = $domData = $intData = [];
         for ($i = 11; $i >= 0; $i--) {
-            $month    = Carbon::now()->startOfMonth()->subMonths($i);
-            $labels[] = $month->format('M Y');
+            $month     = Carbon::now()->startOfMonth()->subMonths($i);
+            $labels[]  = $month->format('M Y');
             $domData[] = $domMap[$month->format('Y-m')] ?? 0;
             $intData[] = $intMap[$month->format('Y-m')] ?? 0;
         }
 
         return view('dashboard', [
             'username' => $request->user()->username,
-            'totalDom' => $totalDom,
-            'totalInt' => $totalInt,
+            'totalDom' => $domDates->count(),
+            'totalInt' => $intDates->count(),
             'labels'   => $labels,
             'domData'  => $domData,
             'intData'  => $intData,
         ]);
     }
 
-    /** @return array<string,int> keyed by 'YYYY-MM' */
-    private function monthMap(string $model, string $column, Carbon $since): array
+    /**
+     * @param  Collection<int,mixed>  $dates
+     * @return array<string,int> record count keyed by 'YYYY-MM'
+     */
+    private function countByMonth(Collection $dates): array
     {
-        $rows = $model::selectRaw("YEAR($column) as y, MONTH($column) as m, COUNT(*) as cnt")
-            ->where($column, '>=', $since)
-            ->groupByRaw("YEAR($column), MONTH($column)")
-            ->get();
-
-        $map = [];
-        foreach ($rows as $row) {
-            $map[sprintf('%04d-%02d', $row->y, $row->m)] = (int) $row->cnt;
-        }
-
-        return $map;
+        return $dates
+            ->countBy(fn ($date) => Carbon::parse($date)->format('Y-m'))
+            ->all();
     }
 }

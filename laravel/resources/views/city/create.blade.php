@@ -7,52 +7,37 @@
 @endpush
 
 @section('content')
-<h2 class="text-center mt-4">Add New City</h2>
-<div class="container mt-3">
+<div class="page page-narrow">
+    <x-page-header title="Add City" subtitle="Register a new city under a country" />
 
-    <form method="POST" action="{{ route('cities.store') }}">
-        @csrf
+    <div class="card">
+        <div class="card-header">City Details</div>
+        <form method="POST" action="{{ route('cities.store') }}">
+            @csrf
 
-        <div class="mb-3">
-            <label>Select Country:</label>
-            <select name="country_id" id="country_id" class="form-control" required>
-                <option value="">-- Select Country --</option>
-                @foreach ($countries as $c)
-                    <option value="{{ $c->Country_id }}" {{ old('country_id') == $c->Country_id ? 'selected' : '' }}>{{ $c->Country_name }}</option>
-                @endforeach
-            </select>
-        </div>
+            <div class="card-body">
+                <x-select-field name="country_id" id="country_id" label="Country"
+                                :options="$countries->pluck('Country_name', 'Country_id')->all()"
+                                inputClass="form-control"
+                                placeholder="-- Select Country --" />
 
-        <div class="mb-3">
-            <label>City Name:</label>
-            <input type="text" name="city_name" id="city_name" class="form-control" value="{{ old('city_name') }}" {{ old('country_id') ? '' : 'disabled' }} required>
-        </div>
+                <div class="mb-3">
+                    <label for="city_name" class="form-label">City Name</label>
+                    <input type="text" name="city_name" id="city_name" class="form-control" value="{{ old('city_name') }}" @disabled(! old('country_id')) required>
+                </div>
+            </div>
 
-        <button class="btn btn-primary">Save City</button>
-        <a href="{{ route('cities.index') }}" class="btn btn-secondary">Back</a>
-    </form>
+            <div class="card-footer d-flex justify-content-end gap-2">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <a href="{{ route('cities.index') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
 </div>
 @endsection
 
 @push('scripts')
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script>
-    $(document).ready(function () {
-        // apply Select2 on country select
-        $('#country_id').select2({
-            placeholder: "-- Select Country --",
-            allowClear: true
-        });
-
-        // enable city field only after selecting a country
-        $('#country_id').on('change', function () {
-            if ($(this).val()) {
-                $('#city_name').prop('disabled', false);
-            } else {
-                $('#city_name').prop('disabled', true);
-            }
-        });
-    });
-</script>
+<script src="{{ asset('js/city/create.js') }}"></script>
 @endpush

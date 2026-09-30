@@ -3,33 +3,28 @@
 @section('title', 'Edit City')
 
 @section('content')
-<h2 class="text-center mt-4">Edit City</h2>
-<div class="container mt-3">
+<div class="page page-narrow">
+    <x-page-header title="Edit City" subtitle="Update the city details" />
 
-    <form method="POST" action="{{ route('cities.update', $city) }}">
-        @csrf
-        @method('PUT')
+    <div class="card">
+        <div class="card-header">City Details</div>
+        <form method="POST" action="{{ route('cities.update', $city) }}">
+            @csrf
+            @method('PUT')
 
-        <div class="mb-3">
-            <label>City Name:</label>
-            <input type="text" name="city_name" class="form-control" required
-                value="{{ old('city_name', $city->City_name) }}">
-        </div>
+            <div class="card-body">
+                <x-form-field name="city_name" label="City Name" :value="$city->City_name" />
 
-        <div class="mb-3">
-            <label>Select Country:</label>
-            <select name="country_id" required class="form-control">
-                @foreach ($countries as $c)
-                    <option value="{{ $c->Country_id }}"
-                        {{ $c->Country_id == old('country_id', $city->Country_id) ? 'selected' : '' }}>
-                        {{ $c->Country_name }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
+                <x-select-field name="country_id" label="Country"
+                                :options="$countries->pluck('Country_name', 'Country_id')->all()"
+                                :selected="$city->Country_id" />
+            </div>
 
-        <button class="btn btn-primary">Update City</button>
-        <a href="{{ route('cities.index') }}" class="btn btn-secondary">Back</a>
-    </form>
+            <div class="card-footer d-flex justify-content-end gap-2">
+                <button type="submit" class="btn btn-primary">Update</button>
+                <a href="{{ route('cities.index') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
 </div>
 @endsection

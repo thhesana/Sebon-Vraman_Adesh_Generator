@@ -11,7 +11,7 @@ class UsdRateController extends Controller
     /** usd_rate.php — latest 12 stored rates. */
     public function index()
     {
-        $rates = UsdForex::orderByDesc('conversion_date')->limit(12)->get();
+        $rates = UsdForex::latestRates()->get();
 
         return view('usd.rates', compact('rates'));
     }

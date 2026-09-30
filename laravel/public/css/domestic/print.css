@@ -1,0 +1,124 @@
+/* Domestic travel order (Schedule 5) print document: layout only.
+   Fonts come from theme.css (Kalimati for Devanagari, Inter for Latin). */
+@page {
+    size: A4;
+    margin: 15mm 20mm;
+}
+
+html, body, div, span, p, h1, h2, h3, h4, h5, h6,
+table, tr, td, th, input, textarea, select, label,
+ul, ol, li, section, article, header, footer {
+    font-weight: normal !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.5 !important;
+}
+
+body { background: var(--bs-body-bg); }
+
+.print-container h2 { font-size: inherit; }
+
+.print-container {
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 15mm;
+    background: #fff;
+}
+
+.page-break {
+    page-break-after: always;
+}
+
+.header, .header h2, .header-subtitle, .header-right {
+    text-align: center;
+    font-weight: bold !important;
+    margin: 5px 0 !important;
+}
+
+.header-right {
+    text-align: right;
+}
+
+.bottom-section {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 25px !important;
+}
+
+.bottom-left {
+    flex: 0.8;
+}
+
+.bottom-right {
+    flex: 1.4;
+    border: 2px solid var(--gray-900) !important;
+    padding: 4px !important;
+    margin: 0 !important;
+    font-weight: normal !important;
+    line-height: 1.35 !important;
+}
+
+.bottom-right * {
+    font-weight: normal !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.35 !important;
+}
+
+.bottom-right-subtitle {
+    text-align: center;
+    font-weight: bold !important;
+    text-decoration: underline;
+    margin-bottom: 2px !important;
+}
+
+.bottom-right-content {
+    line-height: 1.35 !important;
+}
+
+.bottom-right-signatures {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 5px !important;
+}
+
+.bottom-right-sig-left, .bottom-right-sig-right {
+    flex: 1;
+    line-height: 1.35 !important;
+}
+
+.print-button {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    box-shadow: var(--shadow-md);
+}
+
+.record-container {
+    margin-bottom: 40px;
+}
+
+@media print {
+    body {
+        margin: 0;
+        padding: 0;
+        background: #fff;
+    }
+    .no-print {
+        display: none !important;
+    }
+    .print-container {
+        padding: 0 !important;
+        max-width: 100% !important;
+    }
+    .bottom-right {
+        border: 2px solid var(--gray-900) !important;
+        page-break-inside: avoid !important;
+    }
+    .page-break {
+        page-break-after: always !important;
+    }
+}

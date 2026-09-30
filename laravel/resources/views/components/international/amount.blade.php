@@ -1,0 +1,1 @@
+@props(['value', 'blank' => '0'])@php($n = ($value === null || $value === '') ? null : (float) $value){{ $n === null ? $blank : number_format($n, floor($n) == $n ? 0 : 2) }}

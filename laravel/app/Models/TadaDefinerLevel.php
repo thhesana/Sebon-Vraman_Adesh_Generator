@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class TadaDefinerLevel extends Model
@@ -13,4 +14,11 @@ class TadaDefinerLevel extends Model
     public $timestamps = false;
 
     protected $guarded = [];
+
+    /** 'Chairman' first, then the highest USD allowance. */
+    public function scopeChairmanFirst(Builder $query): void
+    {
+        $query->orderByRaw("CASE WHEN TadaDefinerMasterBylevel_name = 'Chairman' THEN 0 ELSE 1 END")
+            ->orderByDesc('tadaInUSD');
+    }
 }
