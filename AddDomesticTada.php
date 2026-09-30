@@ -5,6 +5,7 @@ ini_set('display_errors', 1);
 
 // Include database connection and header
 require_once 'db.php';
+require_once 'mail_helper.php';
 include 'HEADER.php';
 
 // Check DB connection
@@ -99,28 +100,6 @@ function getNextDomesticChalaniNumber($conn) {
     if ($stmt === false) return 1;
     $row = sqlsrv_fetch_array($stmt, SQLSRV_FETCH_ASSOC);
     return $row['NextChalani'];
-}
-
-// Function: Run Python Script in Background
-function runPythonScriptInBackground($batchId) {
-    $pythonPath = 'C:\Users\Lenovo\AppData\Local\Programs\Python\Python313\python.exe';
-    $scriptPath = 'C:\xampp\htdocs\Vraman_Adesh_Generator\domestic_mail_notifier.py';
-    $logPath    = 'C:\xampp\htdocs\Vraman_Adesh_Generator\python_execution.log';
-
-    if (!file_exists($pythonPath)) { error_log("Python executable not found at: $pythonPath"); return false; }
-    if (!file_exists($scriptPath)) { error_log("Python script not found at: $scriptPath"); return false; }
-
-    $logMessage = date('Y-m-d H:i:s') . " - Attempting to run Python script for Batch: $batchId\n";
-    file_put_contents($logPath, $logMessage, FILE_APPEND);
-
-    $command = "\"$pythonPath\" \"$scriptPath\" $batchId > \"$logPath\" 2>&1";
-    exec($command . " & exit", $output, $return_var);
-
-    $resultLog  = date('Y-m-d H:i:s') . " - Command: $command\n";
-    $resultLog .= "Return code: $return_var\n";
-    $resultLog .= "Output: " . implode("\n", $output) . "\n\n";
-    file_put_contents($logPath, $resultLog, FILE_APPEND);
-    return true;
 }
 
 // Handle form submission
@@ -232,8 +211,7 @@ WHERE e.EmpPersonalCode = ?
         }
 
         if ($insertedCount > 0) {
-            runPythonScriptInBackground($batch_id);
-            error_log("Python script execution triggered for batch: $batch_id");
+            sendDomesticBatchMails($conn, $batch_id);
 
             $chalaniRange = ($firstChalani == $lastChalani)
                 ? "Chalani #: {$firstChalani}"

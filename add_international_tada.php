@@ -5,6 +5,7 @@ ini_set('display_errors', 1);
 
 // Include database connection FIRST
 require_once 'db.php';
+require_once 'mail_helper.php';
 
 // Then include header
 include 'HEADER.php';
@@ -136,15 +137,6 @@ if (!function_exists('getNextChalaniNumber')) {
     }
 }
 
-// Run Python script in background
-function runPythonScriptInBackground($batchId) {
-    $pythonExe = 'C:\\Users\\Lenovo\\AppData\\Local\\Programs\\Python\\Python313\\python.exe';
-    $script = 'C:\\xampp\\htdocs\\Vraman_Adesh_Generator\\international_mail_notifier.py';
-    $cmd = "start /B \"\" \"$pythonExe\" \"$script\" $batchId";
-    pclose(popen($cmd, 'r'));
-    error_log("Python script executed for International Batch: $batchId");
-}
-
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $form_date        = $_POST['form_date'];
@@ -274,7 +266,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 
     if ($insertedCount > 0) {
-        runPythonScriptInBackground($batch_id);
+        sendInternationalBatchMails($conn, $batch_id);
         $chalaniRange = ($firstChalani == $lastChalani) ? "Chalani #: {$firstChalani}" : "Chalani #: {$firstChalani} - {$lastChalani}";
         $message = "✅ Batch {$batch_id} created successfully!\n{$chalaniRange}\nEmployees Added: {$insertedCount}\nFiscal Year ID: {$fiscal_year_id}";
         if (!empty($errors)) $message .= "\n\nWarnings:\n" . implode("\n", $errors);
