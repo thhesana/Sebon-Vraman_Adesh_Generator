@@ -10,15 +10,10 @@
         </div>
 
         <div class="card-body">
-            @if ($errors->any())
-                <div class="alert alert-danger">
-                    @foreach ($errors->all() as $e)<div>{{ $e }}</div>@endforeach
-                </div>
-            @endif
 
-            <form action="{{ url('/update_country.php') }}" method="POST">
+            <form action="{{ route('countries.update', $country) }}" method="POST">
                 @csrf
-                <input type="hidden" name="Country_id" value="{{ $country->Country_id }}">
+                @method('PUT')
 
                 <div class="mb-3">
                     <label class="form-label">Country Name</label>
@@ -29,13 +24,13 @@
                 <div class="mb-3">
                     <label class="form-label">Extra 33%?</label>
                     <select name="extra33percent_country" class="form-control">
-                        <option value="1" {{ $country->extra33percent_country == 1 ? 'selected' : '' }}>Yes</option>
-                        <option value="0" {{ $country->extra33percent_country == 0 ? 'selected' : '' }}>No</option>
+                        <option value="1" {{ old('extra33percent_country', $country->extra33percent_country) == 1 ? 'selected' : '' }}>Yes</option>
+                        <option value="0" {{ old('extra33percent_country', $country->extra33percent_country) == 0 ? 'selected' : '' }}>No</option>
                     </select>
                 </div>
 
                 <div class="d-flex justify-content-end gap-2">
-                    <a href="{{ url('/countrylist.php') }}" class="btn btn-secondary">Cancel</a>
+                    <a href="{{ route('countries.index') }}" class="btn btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-primary">Update</button>
                 </div>
             </form>

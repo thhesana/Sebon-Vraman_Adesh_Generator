@@ -166,7 +166,7 @@
 <!-- Filter card -->
 <div class="filter-card screen-only">
     <h6><i class="bi bi-funnel-fill"></i> Filter Report</h6>
-    <form method="GET" action="{{ route('international.tada.report') }}">
+    <form method="GET" action="{{ route('international.report') }}">
         <input type="hidden" name="filter_applied" value="1">
 
         <div class="filter-section-title"><i class="bi bi-person-lines-fill"></i> Employee &amp; Fiscal Year</div>
@@ -265,7 +265,7 @@
                 <i class="bi bi-search"></i> Apply Filter
             </button>
             @if ($filterApplied)
-                <a href="{{ route('international.tada.report') }}" class="btn-outline"><i class="bi bi-x-circle"></i> Clear All</a>
+                <a href="{{ route('international.report') }}" class="btn-outline"><i class="bi bi-x-circle"></i> Clear All</a>
             @endif
         </div>
     </form>

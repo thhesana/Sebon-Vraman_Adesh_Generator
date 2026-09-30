@@ -20,7 +20,7 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ route('international.tada.store') }}" id="tadaForm">
+    <form method="POST" action="{{ route('international.store') }}" id="tadaForm">
         @csrf
 
         <div class="form-row">
@@ -137,7 +137,7 @@
         <input type="hidden" name="employee_data" id="employeeData" value="">
 
         <div class="form-actions">
-            <button type="button" class="btn btn-secondary" onclick="window.location.href='{{ route('international.tada.index') }}'">
+            <button type="button" class="btn btn-secondary" onclick="window.location.href='{{ route('international.index') }}'">
                 ← Cancel
             </button>
             <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
@@ -181,9 +181,8 @@ $(document).ready(function () {
             citySelect.empty().append('<option value="">Loading cities...</option>');
 
             $.ajax({
-                url: @json(url('/get_cities.php')),
+                url: @json(route('countries.cities', ['country' => '__ID__'])).replace('__ID__', countryId),
                 type: 'GET',
-                data: { country_id: countryId },
                 dataType: 'json',
                 cache: false,
                 success: function (response) {

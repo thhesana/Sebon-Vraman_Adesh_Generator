@@ -11,15 +11,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->alias([
-            'legacy.auth' => \App\Http\Middleware\EnsureLoggedIn::class,
-        ]);
-
-        // The header's "INT'L VRAMAN" tab calls usdforexudater.php with a plain fetch()
-        // (no CSRF token) to refresh the rate before navigating, exactly like the legacy app.
-        $middleware->validateCsrfTokens(except: [
-            'usdforexudater.php',
-        ]);
+        $middleware->redirectGuestsTo(fn () => route('login'));
+        $middleware->redirectUsersTo(fn () => route('dashboard'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

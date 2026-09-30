@@ -14,13 +14,9 @@
 <div class="container d-flex justify-content-center align-items-center" style="min-height: 60vh;">
     <div class="fy-edit-card">
         <h2 class="text-center">Edit Fiscal Year</h2>
-        @if ($errors->any())
-            <div class="alert alert-danger">
-                @foreach ($errors->all() as $e)<div>{{ $e }}</div>@endforeach
-            </div>
-        @endif
-        <form method="POST" action="{{ url('/edit_fiscal_year.php') }}?id={{ $row->fiscal_year_master_id }}">
+        <form method="POST" action="{{ route('fiscal_years.update', $row) }}">
             @csrf
+            @method('PUT')
             <div class="mb-3">
                 <label for="fy" class="form-label">Fiscal Year:</label>
                 <input type="text" class="form-control" id="fy" name="fy" value="{{ old('fy', $row->fy) }}" required>

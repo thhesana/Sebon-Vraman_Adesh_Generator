@@ -28,6 +28,7 @@
         .nav-item:hover .dropdown-menu { display: block; }
         .app-footer { background-color: #002147; color: white; text-align: center; padding: 12px 0; font-size: 14px; margin-top: auto; box-shadow: 0 -1px 4px rgba(0,0,0,.2); }
         .app-footer p { margin: 2px 0; }
+        @media print { .app-header, .nav-tabs, .app-footer, .flash-messages { display: none !important; } }
     </style>
     @stack('styles')
 </head>
@@ -37,34 +38,35 @@
 <div class="app-header">
     <h2>VRAMAN ADESH GENERATOR</h2>
     <div class="user-info">
-        <p class="mb-0">User: <strong>{{ session('username') }}</strong></p>
-        <form method="POST" action="{{ url('/logout.php') }}" style="display:inline;">
+        <p class="mb-0">User: <strong>{{ auth()->user()->username }}</strong></p>
+        <form method="POST" action="{{ route('logout') }}" style="display:inline;">
             @csrf
             <button type="submit" class="logout-btn">Logout</button>
         </form>
     </div>
 </div>
 <ul class="nav nav-tabs bg-primary justify-content-center">
-    <li class="nav-item"><a href="{{ url('/dashboard.php') }}" class="nav-link text-white">DASHBOARD</a></li>
-    <li class="nav-item"><a href="{{ url('/InternationalVraman.php') }}" class="nav-link text-white" id="intlVramanTab">INT'L VRAMAN</a></li>
-    <li class="nav-item"><a href="{{ url('/DomesticTadaView.php') }}" class="nav-link text-white">DOMESTIC VRAMAN</a></li>
-    <li class="nav-item"><a href="{{ url('/usd_rate.php') }}" class="nav-link text-white">USD RATE</a></li>
-    <li class="nav-item"><a href="{{ url('/orderlevel.php') }}" class="nav-link text-white">LEVEL_MASTER</a></li>
-    <li class="nav-item"><a href="{{ url('/countrylist.php') }}" class="nav-link text-white">COUNTRY</a></li>
-    <li class="nav-item"><a href="{{ url('/cityLIst.php') }}" class="nav-link text-white">CITY</a></li>
-    <li class="nav-item"><a href="{{ url('/DistrictList.php') }}" class="nav-link text-white">DISTRICT</a></li>
-    <li class="nav-item"><a href="{{ url('/employee_view.php') }}" class="nav-link text-white">EMPLOYEE</a></li>
-    <li class="nav-item"><a href="{{ url('/fiscal_year.php') }}" class="nav-link text-white">FY</a></li>
+    <li class="nav-item"><a href="{{ route('dashboard') }}" class="nav-link text-white {{ request()->routeIs('dashboard') ? 'active' : '' }}">DASHBOARD</a></li>
+    <li class="nav-item"><a href="{{ route('international.index') }}" class="nav-link text-white {{ request()->routeIs('international.index', 'international.create', 'international.edit') ? 'active' : '' }}" id="intlVramanTab">INT'L VRAMAN</a></li>
+    <li class="nav-item"><a href="{{ route('domestic.index') }}" class="nav-link text-white {{ request()->routeIs('domestic.index', 'domestic.create', 'domestic.edit') ? 'active' : '' }}">DOMESTIC VRAMAN</a></li>
+    <li class="nav-item"><a href="{{ route('usd.rates') }}" class="nav-link text-white {{ request()->routeIs('usd.*') ? 'active' : '' }}">USD RATE</a></li>
+    <li class="nav-item"><a href="{{ route('levels.index') }}" class="nav-link text-white {{ request()->routeIs('levels.*') ? 'active' : '' }}">LEVEL_MASTER</a></li>
+    <li class="nav-item"><a href="{{ route('countries.index') }}" class="nav-link text-white {{ request()->routeIs('countries.*') ? 'active' : '' }}">COUNTRY</a></li>
+    <li class="nav-item"><a href="{{ route('cities.index') }}" class="nav-link text-white {{ request()->routeIs('cities.*') ? 'active' : '' }}">CITY</a></li>
+    <li class="nav-item"><a href="{{ route('districts.index') }}" class="nav-link text-white {{ request()->routeIs('districts.*') ? 'active' : '' }}">DISTRICT</a></li>
+    <li class="nav-item"><a href="{{ route('employees.index') }}" class="nav-link text-white {{ request()->routeIs('employees.*') ? 'active' : '' }}">EMPLOYEE</a></li>
+    <li class="nav-item"><a href="{{ route('fiscal_years.index') }}" class="nav-link text-white {{ request()->routeIs('fiscal_years.*') ? 'active' : '' }}">FY</a></li>
     <li class="nav-item dropdown">
         <a href="#" class="nav-link text-white">REPORT</a>
         <ul class="dropdown-menu">
-            <li><a href="{{ url('/DOMESTIC_TADAREPORT.php') }}">Domestic Vraman Report</a></li>
-            <li><a href="{{ url('/INTERNATIONAL_TADAREPORT.php') }}">Int'l Vraman Report</a></li>
+            <li><a href="{{ route('domestic.report') }}">Domestic Vraman Report</a></li>
+            <li><a href="{{ route('international.report') }}">Int'l Vraman Report</a></li>
         </ul>
     </li>
 </ul>
 
 <main>
+    @include('layouts._flash')
     @yield('content')
 </main>
 
@@ -80,12 +82,9 @@ document.getElementById('intlVramanTab').addEventListener('click', function (e) 
     const target = this.href;
     const go = () => { window.location.href = target; };
     document.getElementById('loadingSpinner').classList.add('active');
-    fetch(@json(url('/usdforexudater.php'))).then(go).catch(go);
+    fetch(@json(route('usd.converter'))).then(go).catch(go);
 });
 </script>
-@if (session('alert'))
-<script>alert(@json(session('alert')));</script>
-@endif
 @stack('scripts')
 </body>
 </html>

@@ -2,20 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreEmployeeRequest;
+use App\Http\Requests\UpdateEmployeeRequest;
 use App\Models\DesignationType;
 use App\Models\Employee;
 use App\Models\LevelNameMaster;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class EmployeeController extends Controller
 {
     public function index()
     {
-        $employees = Employee::query()
-            ->select(['EmpPersonalCode', 'EmpNameInNepali', 'EmpName', 'Designation', 'LevelName', 'Gender', 'Email'])
-            ->orderBy('EmpName')
-            ->get();
+        $employees = Employee::query()->orderBy('EmpName')->get();
 
         return view('employee.index', compact('employees'));
     }
@@ -25,64 +22,30 @@ class EmployeeController extends Controller
         return view('employee.create', $this->dropdowns());
     }
 
-    public function store(Request $request)
+    public function store(StoreEmployeeRequest $request)
     {
-        $data = $request->validate([
-            'EmpPersonalCode' => ['required', 'string', 'max:50', Rule::unique(Employee::class, 'EmpPersonalCode')],
-            'EmpNameInNepali' => ['required', 'string', 'max:255'],
-            'EmpName' => ['required', 'string', 'max:255'],
-            'Designation' => ['required', 'string', 'max:255'],
-            'LevelName' => ['required', 'string', 'max:255'],
-            'Gender' => ['required', 'in:Male,Female,Other'],
-            'Email' => ['required', 'email', 'max:255'],
-        ]);
+        Employee::create($request->validated());
 
-        Employee::create($data);
-
-        return redirect('/employee_view.php')->with('alert', 'Employee Added Successfully');
+        return redirect()->route('employees.index')->with('success', 'Employee Added Successfully');
     }
 
-    public function edit(Request $request)
+    public function edit(Employee $employee)
     {
-        $emp = Employee::where('EmpPersonalCode', $this->code($request))->firstOrFail();
-
-        return view('employee.edit', ['emp' => $emp] + $this->dropdowns());
+        return view('employee.edit', ['emp' => $employee] + $this->dropdowns());
     }
 
-    public function update(Request $request)
+    public function update(UpdateEmployeeRequest $request, Employee $employee)
     {
-        $code = $this->code($request);
-        Employee::where('EmpPersonalCode', $code)->firstOrFail();
+        $employee->update($request->validated());
 
-        $data = $request->validate([
-            'EmpNameInNepali' => ['required', 'string', 'max:255'],
-            'EmpName' => ['required', 'string', 'max:255'],
-            'Designation' => ['required', 'string', 'max:255'],
-            'LevelName' => ['required', 'string', 'max:255'],
-            'Gender' => ['required', 'in:Male,Female,Other'],
-            'Email' => ['required', 'email', 'max:255'],
-        ]);
-
-        Employee::where('EmpPersonalCode', $code)->update($data);
-
-        return redirect('/employee_view.php')->with('alert', 'Employee Updated Successfully');
-    }
-
-    private function code(Request $request): string
-    {
-        $code = $request->query('code');
-        if (! $code) {
-            abort(400, 'Invalid employee code');
-        }
-
-        return (string) $code;
+        return redirect()->route('employees.index')->with('success', 'Employee Updated Successfully');
     }
 
     private function dropdowns(): array
     {
         return [
-            'designations' => DesignationType::orderBy('designationType')->get(['id', 'designationType']),
-            'levels' => LevelNameMaster::orderBy('levelName')->get(['id', 'levelName']),
+            'designations' => DesignationType::orderBy('designationType')->get(),
+            'levels' => LevelNameMaster::orderBy('levelName')->get(),
         ];
     }
 }

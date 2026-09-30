@@ -2,52 +2,55 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\LoginRequest;
 use App\Models\User;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
 
 class AuthController extends Controller
 {
-    public function index(Request $request)
+    public function showLogin(): View
     {
-        $error = null;
-
-        if ($request->isMethod('post') && $request->has('login')) {
-            $username = (string) $request->input('username');
-            $password = (string) $request->input('password');
-
-            $user = User::where('username', $username)->where('active', 'Y')->first();
-
-            if (! $user) {
-                $error = 'Invalid username or account not active';
-            } elseif ($user->password_hash === $password) {
-                // Password still stored as plain text: force the user to set a hashed one.
-                $request->session()->put('username', $username);
-
-                return redirect('/changepassword.php');
-            } elseif (password_verify($password, $user->password_hash)) {
-                $request->session()->regenerate();
-                $request->session()->put([
-                    'loggedin' => true,
-                    'user_id'  => $user->user_id,
-                    'username' => $user->username,
-                    'role'     => $user->role,
-                ]);
-
-                // Legacy sent admins to admin_dashboard.php, which never existed; everyone lands here.
-                return redirect('/dashboard.php');
-            } else {
-                $error = 'Invalid password';
-            }
-        }
-
-        return view('auth.login', ['error' => $error]);
+        return view('auth.login');
     }
 
-    public function logout(Request $request)
+    public function login(LoginRequest $request): RedirectResponse
     {
+        $credentials = $request->validated();
+
+        $user = User::where('username', $credentials['username'])->where('active', 'Y')->first();
+
+        if (! $user) {
+            return back()->withInput($request->only('username'))
+                ->withErrors(['username' => 'Invalid username or account not active']);
+        }
+
+        // Password still stored as plain text: force the user to set a hashed one first.
+        if ($user->password_hash === $credentials['password']) {
+            $request->session()->put('password_change_username', $user->username);
+
+            return redirect()->route('password.change');
+        }
+
+        if (! password_verify($credentials['password'], $user->password_hash)) {
+            return back()->withInput($request->only('username'))
+                ->withErrors(['password' => 'Invalid password']);
+        }
+
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        return redirect()->intended(route('dashboard'));
+    }
+
+    public function logout(Request $request): RedirectResponse
+    {
+        Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/index.php');
+        return redirect()->route('login');
     }
 }

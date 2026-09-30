@@ -42,7 +42,7 @@
                 1 USD = <strong>{{ number_format($rate['buy'], 2) }} NPR</strong> (Buy) |
                 <strong>{{ number_format($rate['sell'], 2) }} NPR</strong> (Sell)
             </div>
-            <form method="post" action="{{ url('/usdforexudater.php') }}">
+            <form method="post" action="{{ route('usd.converter') }}">
                 @csrf
                 <label for="usd_amount">Enter Amount in USD:</label>
                 <input type="number" id="usd_amount" step="0.01" name="usd_amount" placeholder="0.00" required value="{{ $usd }}">

@@ -7,7 +7,7 @@
     <h3 class="text-center mb-4">Country List</h3>
 
     <!-- SEARCH BOX -->
-    <form method="get" action="{{ url('/countrylist.php') }}" class="mb-3 text-center">
+    <form method="get" action="{{ route('countries.index') }}" class="mb-3 text-center">
         <input type="text" name="search" value="{{ $search }}"
                placeholder="Search Country..." class="form-control w-50 d-inline-block">
         <button type="submit" class="btn btn-primary">Search</button>
@@ -24,36 +24,21 @@
         </thead>
 
         <tbody>
-            @foreach ($countries as $row)
+            @forelse ($countries as $row)
                 <tr>
                     <td>{{ $row->Country_id }}</td>
                     <td>{{ $row->Country_name }}</td>
                     <td>{{ $row->extra33percent_country == 1 ? 'Yes' : 'No' }}</td>
                     <td>
-                        <a href="{{ url('/edit_country.php') }}?id={{ $row->Country_id }}" class="btn btn-sm btn-primary">Edit</a>
+                        <a href="{{ route('countries.edit', $row) }}" class="btn btn-sm btn-primary">Edit</a>
                     </td>
                 </tr>
-            @endforeach
+            @empty
+                <tr><td colspan="4" class="text-center">No countries found</td></tr>
+            @endforelse
         </tbody>
     </table>
 
-    <!-- PAGINATION -->
-    <nav>
-        <ul class="pagination justify-content-center">
-            <li class="page-item {{ $page <= 1 ? 'disabled' : '' }}">
-                <a class="page-link" href="?page={{ $page - 1 }}&search={{ urlencode($search) }}">Previous</a>
-            </li>
-
-            @for ($i = 1; $i <= $totalPages; $i++)
-                <li class="page-item {{ $i == $page ? 'active' : '' }}">
-                    <a class="page-link" href="?page={{ $i }}&search={{ urlencode($search) }}">{{ $i }}</a>
-                </li>
-            @endfor
-
-            <li class="page-item {{ $page >= $totalPages ? 'disabled' : '' }}">
-                <a class="page-link" href="?page={{ $page + 1 }}&search={{ urlencode($search) }}">Next</a>
-            </li>
-        </ul>
-    </nav>
+    <div class="d-flex justify-content-center">{{ $countries->links() }}</div>
 </div>
 @endsection

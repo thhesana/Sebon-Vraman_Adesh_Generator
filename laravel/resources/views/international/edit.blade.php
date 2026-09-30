@@ -15,8 +15,9 @@
         📦 Batch ID: <strong>{{ $batchId }}</strong>
     </div>
 
-    <form method="POST" action="{{ route('international.tada.update', ['batch_id' => $batchId]) }}" id="tadaForm">
+    <form method="POST" action="{{ route('international.update', ['batch' => $batchId]) }}" id="tadaForm">
         @csrf
+        @method('PUT')
         <div class="form-row">
             <div class="form-group">
                 <label>Form Date <span class="required">*</span></label>
@@ -125,7 +126,7 @@
 
         <div class="form-actions">
             <button type="button" class="btn btn-secondary"
-                    onclick="window.location.href='{{ route('international.tada.index') }}'">← Cancel</button>
+                    onclick="window.location.href='{{ route('international.index') }}'">← Cancel</button>
             <button type="submit" class="btn btn-primary" id="submitBtn">
                 💾 Update Batch {{ $batchId }}
             </button>
@@ -175,9 +176,8 @@ $(document).ready(function () {
             citySelect.prop('disabled', true).empty().append('<option value="">Loading cities...</option>');
 
             $.ajax({
-                url: @json(url('/get_cities.php')),
+                url: @json(route('countries.cities', ['country' => '__ID__'])).replace('__ID__', countryId),
                 type: 'GET',
-                data: { country_id: countryId },
                 dataType: 'json',
                 cache: false,
                 success: function (response) {

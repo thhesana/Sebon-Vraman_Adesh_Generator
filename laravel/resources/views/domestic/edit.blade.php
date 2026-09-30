@@ -54,28 +54,27 @@
 <div class="form-container">
     <h2>✏️ Edit Domestic TADA Batch</h2>
 
-    @include('domestic._errors')
-
     <div class="info-badge">
         📦 Batch ID: <strong>{{ $batchId }}</strong>
     </div>
 
-    <form method="POST" action="{{ url('/EditDomesticTada.php') }}?batch_id={{ urlencode($batchId) }}" id="tadaForm">
+    <form method="POST" action="{{ route('domestic.update', $batchId) }}" id="tadaForm">
         @csrf
+        @method('PUT')
 
         <!-- Row 1: Form Date + TADA Type -->
         <div class="form-row">
             <div class="form-group">
                 <label>Form Date <span class="required">*</span></label>
                 <input type="date" name="form_date" required
-                       value="{{ \Carbon\Carbon::parse($batch->domestic_form_date)->format('Y-m-d') }}">
+                       value="{{ old('form_date', \Carbon\Carbon::parse($batch->domestic_form_date)->format('Y-m-d')) }}">
             </div>
             <div class="form-group">
                 <label>TADA Type <span class="required">*</span></label>
                 <select name="tada_type_id" id="tadaTypeSelect" class="select2-single" required>
                     <option value="">-- Select TADA Type --</option>
                     @foreach ($tadaTypes as $tadaType)
-                        <option value="{{ $tadaType->TadaTypeMaster_id }}" @selected($tadaType->TadaTypeMaster_id == $batch->TadaTypeMaster_id)>{{ $tadaType->type }}</option>
+                        <option value="{{ $tadaType->TadaTypeMaster_id }}" @selected($tadaType->TadaTypeMaster_id == old('tada_type_id', $batch->TadaTypeMaster_id))>{{ $tadaType->type }}</option>
                     @endforeach
                 </select>
             </div>
@@ -88,7 +87,7 @@
                 <select name="district_id" id="districtSelect" class="select2-single" required>
                     <option value="">-- Select District --</option>
                     @foreach ($districts as $district)
-                        <option value="{{ $district->District_id }}" @selected($district->District_id == $batch->District_id)>{{ $district->District_name }}</option>
+                        <option value="{{ $district->District_id }}" @selected($district->District_id == old('district_id', $batch->District_id))>{{ $district->District_name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -102,7 +101,7 @@
                 <select name="tadaverifier_id" id="tadaVerifierSelect" class="select2-single" required>
                     <option value="">-- Select TADA Verifier --</option>
                     @foreach ($verifiers as $verifier)
-                        <option value="{{ (int) $verifier->tadaverifier_id }}" @selected($verifier->tadaverifier_id == $batch->tadaverifier_id)>{{ $verifier->tadaverifierPost }}</option>
+                        <option value="{{ (int) $verifier->tadaverifier_id }}" @selected($verifier->tadaverifier_id == old('tadaverifier_id', $batch->tadaverifier_id))>{{ $verifier->tadaverifierPost }}</option>
                     @endforeach
                 </select>
             </div>
@@ -112,7 +111,7 @@
         <div class="form-group full-width">
             <label>Travel Objective <span class="required">*</span></label>
             <textarea name="travel_objective" required
-                      placeholder="Enter the purpose of domestic travel...">{{ $batch->domestic_travel_objective }}</textarea>
+                      placeholder="Enter the purpose of domestic travel...">{{ old('travel_objective', $batch->domestic_travel_objective) }}</textarea>
         </div>
 
         <!-- Travel Dates -->
@@ -120,12 +119,12 @@
             <div class="form-group">
                 <label>Travel Start Date <span class="required">*</span></label>
                 <input type="date" name="travelDateStart" id="startDate" required
-                       value="{{ \Carbon\Carbon::parse($batch->domestic_travelDateStart)->format('Y-m-d') }}">
+                       value="{{ old('travelDateStart', \Carbon\Carbon::parse($batch->domestic_travelDateStart)->format('Y-m-d')) }}">
             </div>
             <div class="form-group">
                 <label>Travel End Date <span class="required">*</span></label>
                 <input type="date" name="travelDateEnd" id="endDate" required
-                       value="{{ \Carbon\Carbon::parse($batch->domestic_travelDateEnd)->format('Y-m-d') }}">
+                       value="{{ old('travelDateEnd', \Carbon\Carbon::parse($batch->domestic_travelDateEnd)->format('Y-m-d')) }}">
             </div>
         </div>
 
@@ -180,7 +179,7 @@
 
         <div class="form-actions">
             <button type="button" class="btn btn-secondary"
-                    onclick="window.location.href='{{ url('/DomesticTadaView.php') }}'">← Cancel</button>
+                    onclick="window.location.href='{{ route('domestic.index') }}'">← Cancel</button>
             <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
                 💾 Update Batch {{ $batchId }}
             </button>
@@ -209,6 +208,23 @@ $(document).ready(function () {
             twentyPercentExtra: emp.domestic_isTwentyPercentExtra == 1
         });
     });
+
+    // After a validation failure, restore the employee list the user had submitted ("code:flag,...")
+    @if (old('employee_data'))
+    addedEmployees = [];
+    @foreach (array_filter(explode(',', old('employee_data'))) as $oldEntry)
+    @php [$oldCode, $oldFlag] = array_pad(explode(':', trim($oldEntry)), 2, '0'); @endphp
+    (function () {
+        const opt = $('#employeeDropdown option').filter(function () { return $(this).val() === @json($oldCode); });
+        if (opt.length) {
+            addedEmployees.push({
+                code: opt.val(), name: opt.data('name'), level: opt.data('level'),
+                npr: opt.data('npr'), twentyPercentExtra: @json($oldFlag == '1')
+            });
+        }
+    })();
+    @endforeach
+    @endif
 
     $('#districtSelect').select2({ placeholder: "Select a district",              allowClear: true, width: '100%' });
     $('#tadaTypeSelect').select2({ placeholder: "Select TADA type",               allowClear: true, width: '100%' });

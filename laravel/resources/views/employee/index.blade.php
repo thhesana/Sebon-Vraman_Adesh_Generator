@@ -6,7 +6,7 @@
 <h2 class="text-center mt-4">Employee List</h2>
 <div class="container mt-3">
 
-    <a href="{{ url('/employee_add.php') }}" class="btn btn-success mb-3 float-end">Add New Employee</a>
+    <a href="{{ route('employees.create') }}" class="btn btn-success mb-3 float-end">Add New Employee</a>
 
     <input type="text" id="searchInput" class="form-control mb-3" placeholder="Search employees...">
 
@@ -36,7 +36,7 @@
                     <td>{{ $row->Gender }}</td>
                     <td>{{ $row->Email }}</td>
                     <td>
-                        <a href="{{ url('/employee_edit.php') }}?code={{ urlencode($row->EmpPersonalCode) }}"
+                        <a href="{{ route('employees.edit', $row) }}"
                            class="btn btn-primary btn-sm">Edit</a>
                     </td>
                 </tr>

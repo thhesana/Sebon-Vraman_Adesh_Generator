@@ -28,7 +28,7 @@ class DashboardController extends Controller
         }
 
         return view('dashboard', [
-            'username' => $request->session()->get('username', 'User'),
+            'username' => $request->user()->username,
             'totalDom' => $totalDom,
             'totalInt' => $totalInt,
             'labels'   => $labels,

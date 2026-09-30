@@ -27,10 +27,10 @@
 
     <div class="header-row">
         <h2>District List</h2>
-        <a href="{{ url('/add_district.php') }}" class="add-btn">+ Add New District</a>
+        <a href="{{ route('districts.create') }}" class="add-btn">+ Add New District</a>
     </div>
 
-    <form method="GET" action="{{ url('/DistrictList.php') }}" class="search-bar">
+    <form method="GET" action="{{ route('districts.index') }}" class="search-bar">
         <input type="text" name="search" id="searchBox"
                placeholder="Search district..."
                value="{{ $search }}">
@@ -46,36 +46,20 @@
 
         @foreach ($districts as $row)
             <tr>
-                <td>{{ $offset + $loop->iteration }}</td>
+                <td>{{ $districts->firstItem() + $loop->index }}</td>
                 <td>{{ $row->District_name }}</td>
                 <td>{{ $row->District_name_nepali }}</td>
             </tr>
         @endforeach
 
-        @if ($totalRows == 0)
+        @if ($districts->isEmpty())
             <tr>
                 <td colspan="3" style="text-align:center;">No records found.</td>
             </tr>
         @endif
     </table>
 
-    <div class="pager">
-        @if ($page > 1)
-            <a href="?page={{ $page - 1 }}&search={{ urlencode($search) }}">Prev</a>
-        @endif
-
-        @for ($i = 1; $i <= $totalPages; $i++)
-            @if ($i == $page)
-                <span class="active">{{ $i }}</span>
-            @else
-                <a href="?page={{ $i }}&search={{ urlencode($search) }}">{{ $i }}</a>
-            @endif
-        @endfor
-
-        @if ($page < $totalPages)
-            <a href="?page={{ $page + 1 }}&search={{ urlencode($search) }}">Next</a>
-        @endif
-    </div>
+    <div class="d-flex justify-content-center mt-3">{{ $districts->links() }}</div>
 
 </div>
 @endsection

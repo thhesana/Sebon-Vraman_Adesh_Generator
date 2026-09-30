@@ -41,12 +41,11 @@
     .table-responsive::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
     .table-responsive::-webkit-scrollbar-thumb { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 10px; }
     .pagination-container { display: flex; justify-content: space-between; align-items: center; padding: 20px 0; flex-wrap: wrap; gap: 15px; }
-    .pagination-info { color: #4a5568; font-size: 14px; font-weight: 500; }
     .intl-page .pagination { display: flex; gap: 5px; list-style: none; margin: 0; padding: 0; }
-    .intl-page .pagination li a { padding: 8px 14px; background: #f7fafc; color: #667eea; border: 2px solid #e2e8f0; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; transition: all 0.3s ease; display: inline-block; }
-    .intl-page .pagination li a:hover { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-color: #667eea; transform: translateY(-2px); }
-    .intl-page .pagination li.active a { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-color: #667eea; }
-    .intl-page .pagination li.disabled a { background: #e2e8f0; color: #a0aec0; cursor: not-allowed; pointer-events: none; }
+    .intl-page .pagination .page-link { padding: 8px 14px; background: #f7fafc; color: #667eea; border: 2px solid #e2e8f0; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; transition: all 0.3s ease; display: inline-block; }
+    .intl-page .pagination .page-link:hover { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-color: #667eea; transform: translateY(-2px); }
+    .intl-page .pagination .active .page-link { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-color: #667eea; }
+    .intl-page .pagination .disabled .page-link { background: #e2e8f0; color: #a0aec0; cursor: not-allowed; pointer-events: none; }
     @media (max-width: 768px) {
         .intl-page .main-container { padding: 20px; border-radius: 15px; }
         .page-title { font-size: 24px; }
@@ -68,7 +67,7 @@
                 <i class="bi bi-airplane-fill"></i>
                 INTERNATIONAL TRAVEL RECORDS
             </h1>
-            <a href="{{ route('international.tada.create') }}" class="btn-gradient">
+            <a href="{{ route('international.create') }}" class="btn-gradient">
                 <i class="bi bi-plus-circle-fill"></i>
                 Add New Batch
             </a>
@@ -130,10 +129,10 @@
                                         <div class="action-buttons">
                                             @if ($row->Batch_id && ! in_array($row->Batch_id, $editedBatches))
                                                 @php $editedBatches[] = $row->Batch_id; @endphp
-                                                <a href="{{ route('international.tada.edit', ['batch_id' => $row->Batch_id]) }}" class="btn-action btn-edit">
+                                                <a href="{{ route('international.edit', ['batch' => $row->Batch_id]) }}" class="btn-action btn-edit">
                                                     <i class="bi bi-pencil-fill"></i> Edit
                                                 </a>
-                                                <a href="{{ route('international.tada.print', ['batch_id' => $row->Batch_id]) }}" class="btn-action btn-print" target="_blank">
+                                                <a href="{{ route('international.print', ['batch' => $row->Batch_id]) }}" class="btn-action btn-print" target="_blank">
                                                     <i class="bi bi-printer-fill"></i> Print
                                                 </a>
                                             @endif
@@ -147,49 +146,9 @@
             </div>
         </div>
 
-        @if ($totalPages > 1)
+        @if ($records->hasPages())
         <div class="pagination-container">
-            <div class="pagination-info">
-                Showing {{ (($currentPage - 1) * $recordsPerPage) + 1 }}
-                to {{ min($currentPage * $recordsPerPage, $totalRecords) }}
-                of {{ $totalRecords }} records
-            </div>
-
-            <ul class="pagination">
-                <li class="{{ $currentPage == 1 ? 'disabled' : '' }}">
-                    <a href="?page={{ $currentPage - 1 }}"><i class="bi bi-chevron-left"></i> Prev</a>
-                </li>
-
-                @php
-                    $range = 2;
-                    $startPage = max(1, $currentPage - $range);
-                    $endPage = min($totalPages, $currentPage + $range);
-                @endphp
-
-                @if ($startPage > 1)
-                    <li><a href="?page=1">1</a></li>
-                    @if ($startPage > 2)
-                        <li class="disabled"><a>...</a></li>
-                    @endif
-                @endif
-
-                @for ($i = $startPage; $i <= $endPage; $i++)
-                    <li class="{{ $i == $currentPage ? 'active' : '' }}">
-                        <a href="?page={{ $i }}">{{ $i }}</a>
-                    </li>
-                @endfor
-
-                @if ($endPage < $totalPages)
-                    @if ($endPage < $totalPages - 1)
-                        <li class="disabled"><a>...</a></li>
-                    @endif
-                    <li><a href="?page={{ $totalPages }}">{{ $totalPages }}</a></li>
-                @endif
-
-                <li class="{{ $currentPage == $totalPages ? 'disabled' : '' }}">
-                    <a href="?page={{ $currentPage + 1 }}">Next <i class="bi bi-chevron-right"></i></a>
-                </li>
-            </ul>
+            {{ $records->links() }}
         </div>
         @endif
     </div>

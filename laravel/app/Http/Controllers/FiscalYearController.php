@@ -2,18 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreFiscalYearRequest;
+use App\Http\Requests\UpdateFiscalYearRequest;
 use App\Models\FiscalYear;
-use Illuminate\Http\Request;
 
 class FiscalYearController extends Controller
 {
-    private const RULES = [
-        'fy' => ['required', 'string', 'max:50'],
-        'fy_startdate' => ['required', 'date'],
-        'fy_enddate' => ['required', 'date'],
-        'fy_status' => ['required', 'in:ACTIVE,INACTIVE'],
-    ];
-
     public function index()
     {
         $fiscalYears = FiscalYear::orderByDesc('fiscal_year_master_id')->get();
@@ -26,46 +20,22 @@ class FiscalYearController extends Controller
         return view('fiscal_year.create');
     }
 
-    public function store(Request $request)
+    public function store(StoreFiscalYearRequest $request)
     {
-        $v = validator($request->all(), self::RULES);
-        if ($v->fails()) {
-            return back()->withInput()->with('alert', 'Please fill in all fields!');
-        }
+        FiscalYear::create($request->validated() + ['created_date' => now()->format('Y-m-d H:i:s')]);
 
-        FiscalYear::create($v->validated() + ['created_date' => now()->format('Y-m-d H:i:s')]);
-
-        return redirect('/fiscal_year.php')->with('alert', 'Fiscal Year added successfully!');
+        return redirect()->route('fiscal_years.index')->with('success', 'Fiscal Year added successfully!');
     }
 
-    public function edit(Request $request)
+    public function edit(FiscalYear $fiscal_year)
     {
-        return view('fiscal_year.edit', ['row' => $this->find($request)]);
+        return view('fiscal_year.edit', ['row' => $fiscal_year]);
     }
 
-    public function update(Request $request)
+    public function update(UpdateFiscalYearRequest $request, FiscalYear $fiscal_year)
     {
-        $row = $this->find($request);
+        $fiscal_year->update($request->validated());
 
-        $data = $request->validate(self::RULES);
-
-        FiscalYear::where('fiscal_year_master_id', $row->fiscal_year_master_id)->update($data);
-
-        return redirect('/fiscal_year.php');
-    }
-
-    private function find(Request $request): FiscalYear
-    {
-        $id = $request->query('id');
-        if ($id === null || $id === '') {
-            abort(400, 'Invalid request. No fiscal year ID provided.');
-        }
-
-        $row = FiscalYear::where('fiscal_year_master_id', $id)->first();
-        if (! $row) {
-            abort(404, 'Fiscal year record not found.');
-        }
-
-        return $row;
+        return redirect()->route('fiscal_years.index');
     }
 }

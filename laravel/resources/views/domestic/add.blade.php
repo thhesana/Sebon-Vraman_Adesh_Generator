@@ -58,8 +58,6 @@
 <div class="form-container">
     <h2>➕ Add Domestic TADA Batch</h2>
 
-    @include('domestic._errors')
-
     <div class="info-badges">
         <div class="info-badge">
             📋 Next Batch ID: <strong>{{ $nextBatch }}</strong>
@@ -69,21 +67,21 @@
         </div>
     </div>
 
-    <form method="POST" action="{{ url('/AddDomesticTada.php') }}" id="tadaForm">
+    <form method="POST" action="{{ route('domestic.store') }}" id="tadaForm">
         @csrf
 
         <!-- Row 1: Form Date + District -->
         <div class="form-row">
             <div class="form-group">
                 <label>Form Date <span class="required">*</span></label>
-                <input type="date" name="form_date" required value="{{ date('Y-m-d') }}">
+                <input type="date" name="form_date" required value="{{ old('form_date', date('Y-m-d')) }}">
             </div>
             <div class="form-group">
                 <label>District <span class="required">*</span></label>
                 <select name="district_id" id="districtSelect" class="select2-single" required>
                     <option value="">-- Select District --</option>
                     @foreach ($districts as $district)
-                        <option value="{{ $district->District_id }}">{{ $district->District_name }}</option>
+                        <option value="{{ $district->District_id }}" @selected(old('district_id') == $district->District_id)>{{ $district->District_name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -96,14 +94,14 @@
                 <select name="tada_type_id" id="tadaTypeSelect" class="select2-single" required>
                     <option value="">-- Select TADA Type --</option>
                     @foreach ($tadaTypes as $tadaType)
-                        <option value="{{ $tadaType->TadaTypeMaster_id }}">{{ $tadaType->type }}</option>
+                        <option value="{{ $tadaType->TadaTypeMaster_id }}" @selected(old('tada_type_id') == $tadaType->TadaTypeMaster_id)>{{ $tadaType->type }}</option>
                     @endforeach
                 </select>
             </div>
             <div class="form-group">
                 <label>&nbsp;</label>
                 <div class="checkbox-container">
-                    <input type="checkbox" name="is_twenty_percent_extra" id="twentyPercentExtra">
+                    <input type="checkbox" name="is_twenty_percent_extra" id="twentyPercentExtra" @checked(old('is_twenty_percent_extra'))>
                     <label for="twentyPercentExtra">Add 20% Extra TADA</label>
                 </div>
             </div>
@@ -116,7 +114,7 @@
                 <select name="tadaverifier_id" id="tadaVerifierSelect" class="select2-single" required>
                     <option value="">-- Select TADA Verifier --</option>
                     @foreach ($verifiers as $verifier)
-                        <option value="{{ (int) $verifier->tadaverifier_id }}">{{ $verifier->tadaverifierPost }}</option>
+                        <option value="{{ (int) $verifier->tadaverifier_id }}" @selected(old('tadaverifier_id') == $verifier->tadaverifier_id)>{{ $verifier->tadaverifierPost }}</option>
                     @endforeach
                 </select>
             </div>
@@ -125,18 +123,18 @@
         <!-- Travel Objective -->
         <div class="form-group full-width">
             <label>Travel Objective <span class="required">*</span></label>
-            <textarea name="travel_objective" required placeholder="Enter the purpose of domestic travel..."></textarea>
+            <textarea name="travel_objective" required placeholder="Enter the purpose of domestic travel...">{{ old('travel_objective') }}</textarea>
         </div>
 
         <!-- Travel Dates -->
         <div class="form-row">
             <div class="form-group">
                 <label>Travel Start Date <span class="required">*</span></label>
-                <input type="date" name="travelDateStart" id="startDate" required>
+                <input type="date" name="travelDateStart" id="startDate" required value="{{ old('travelDateStart') }}">
             </div>
             <div class="form-group">
                 <label>Travel End Date <span class="required">*</span></label>
-                <input type="date" name="travelDateEnd" id="endDate" required>
+                <input type="date" name="travelDateEnd" id="endDate" required value="{{ old('travelDateEnd') }}">
             </div>
         </div>
 
@@ -195,7 +193,7 @@
         <input type="hidden" name="employee_data" id="employeeData" value="">
 
         <div class="form-actions">
-            <button type="button" class="btn btn-secondary" onclick="window.location.href='{{ url('/DomesticTadaView.php') }}'">
+            <button type="button" class="btn btn-secondary" onclick="window.location.href='{{ route('domestic.index') }}'">
                 ← Cancel
             </button>
             <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
@@ -243,6 +241,21 @@ $(document).ready(function () {
         $('#employeeDropdown').val('').trigger('change');
         updateSubmitButton();
     });
+
+    // Restore employees after a validation failure
+    @if (old('employee_data'))
+    @foreach (array_filter(explode(',', old('employee_data'))) as $oldCode)
+    (function () {
+        const opt = $('#employeeDropdown option').filter(function () { return $(this).val() === @json(trim($oldCode)); });
+        if (opt.length) {
+            addedEmployees.push({
+                code: opt.val(), name: opt.data('name'), level: opt.data('level'),
+                nepali: opt.data('nepali'), tadaId: opt.data('tada-id')
+            });
+        }
+    })();
+    @endforeach
+    @endif
 
     function renderEmployeeTable() {
         const tbody = $('#employeeTableBody');
@@ -292,6 +305,9 @@ $(document).ready(function () {
     function updateSubmitButton() {
         $('#submitBtn').prop('disabled', addedEmployees.length === 0);
     }
+
+    renderEmployeeTable();
+    updateSubmitButton();
 
     $('#startDate, #endDate').on('change', function () {
         const startDate = $('#startDate').val();

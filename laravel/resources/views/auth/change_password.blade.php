@@ -15,32 +15,27 @@
         .login-container button:hover { background-color: #0056b3; }
         .login-container p.error { color: red; margin-top: 10px; }
     </style>
-    @if ($passwordUpdated)
-    <script>
-        alert("Password updated successfully!");
-        window.location.href = @json(url('/index.php'));
-    </script>
-    @endif
 </head>
 <body>
     <div class="login-container">
         <img src="{{ asset('sebon_logo.png') }}" alt="Office Logo">
         <h1>Please Change your password as new Password will be encrypted in hash.</h1>
-        @if ($error)
-            <p class="error">{{ $error }}</p>
-        @endif
-        <form method="POST" action="">
+        @foreach ($errors->all() as $message)
+            <p class="error">{{ $message }}</p>
+        @endforeach
+        <form method="POST" action="{{ route('password.update') }}">
             @csrf
+            @method('PUT')
             <label for="old_password">Old Password:</label>
             <input type="password" id="old_password" name="old_password" required><br>
 
             <label for="new_password">New Password:</label>
             <input type="password" id="new_password" name="new_password" required><br>
 
-            <label for="confirm_password">Confirm New Password:</label>
-            <input type="password" id="confirm_password" name="confirm_password" required><br>
+            <label for="new_password_confirmation">Confirm New Password:</label>
+            <input type="password" id="new_password_confirmation" name="new_password_confirmation" required><br>
 
-            <button type="submit" name="update_password">Update Password</button>
+            <button type="submit">Update Password</button>
         </form>
     </div>
 </body>

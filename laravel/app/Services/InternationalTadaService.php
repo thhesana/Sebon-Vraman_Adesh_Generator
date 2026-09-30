@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\FiscalYear;
+use App\Models\InternationalTada;
 use App\Models\UsdForex;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -145,11 +146,206 @@ class InternationalTadaService
     public function insertRow(array $row): void
     {
         $row['createddate'] = DB::raw('GETDATE()');
-        DB::table('International_tada')->insert($row);
+        InternationalTada::query()->insert($row);
+    }
+
+    /**
+     * Create a batch row by row (NO transaction: a failing employee only produces a warning).
+     *
+     * @param  array<string, mixed>  $data  validated request data
+     * @return array{batchId:string, inserted:int, first:?int, last:?int, errors:array<int,string>}
+     */
+    public function createBatch(array $data, int $fiscalYearId, int $userId): array
+    {
+        [$formDate, $startDate, $endDate] = $this->normalizeDates($data);
+        $totalDays = $this->totalDays($startDate, $endDate);
+        $batchId = $this->nextBatchId();
+        $parsed = $this->parseEmployeeData($data['employee_data']);
+        $errors = $parsed['errors'];
+        $inserted = 0;
+        $first = null;
+        $last = null;
+
+        foreach ($parsed['entries'] as $entry) {
+            $empCode = $entry['code'];
+
+            $chalaniId = $this->nextChalaniNumber($fiscalYearId);
+            $first ??= $chalaniId;
+            $last = $chalaniId;
+
+            try {
+                $detail = $this->employeeTadaDetail($empCode);
+            } catch (\Throwable $e) {
+                $errors[] = "Employee {$empCode}: Query failed - ".$e->getMessage();
+
+                continue;
+            }
+            if (! $detail || empty($detail->TadaDefinerMasterBylevel_id)) {
+                $errors[] = "Employee {$empCode}: TADA info missing";
+
+                continue;
+            }
+
+            try {
+                $this->insertRow([
+                    'Batch_id' => $batchId,
+                    'fiscal_year_master_id' => $fiscalYearId,
+                    'Chalani_id' => $chalaniId,
+                    'form_date' => $formDate,
+                    'EmpPersonalCode' => $empCode,
+                    'Country_id' => (int) $data['country_id'],
+                    'City_id' => (int) $data['city_id'],
+                    'travel_objective' => trim($data['travel_objective']),
+                    'travelDateStart' => $startDate,
+                    'travelDateEnd' => $endDate,
+                    'TadaDefinerMasterBylevel_id' => (int) $detail->TadaDefinerMasterBylevel_id,
+                    'totalUSdrecevid' => $this->totalUsd($totalDays, $detail->tadaInUSD),
+                    'DressAllowance' => $entry['dress'],
+                    'createdBy' => $userId,
+                    'tadaverifier_id' => (int) $data['tadaverifier_id'],
+                ]);
+            } catch (\Throwable $e) {
+                $errors[] = "Employee {$empCode}: Insert failed - ".$e->getMessage();
+
+                continue;
+            }
+            $inserted++;
+        }
+
+        return ['batchId' => $batchId, 'inserted' => $inserted, 'first' => $first, 'last' => $last, 'errors' => $errors];
+    }
+
+    /**
+     * Replace a batch's rows: pre-validate every employee, then delete + re-insert in ONE transaction,
+     * keeping the batch's existing verifier.
+     *
+     * @param  array<string, mixed>  $data  validated request data
+     * @return array{ok:bool, message:string, warnings:array<int,string>}
+     */
+    public function updateBatch(string $batchId, object $batchData, array $data, int $userId): array
+    {
+        [$formDate, $startDate, $endDate] = $this->normalizeDates($data);
+        $totalDays = $this->totalDays($startDate, $endDate);
+
+        // Fiscal year scopes the chalani numbers; fall back to the batch's stored one.
+        $fiscalYearId = $this->currentFiscalYearId() ?? $batchData->fiscal_year_master_id;
+
+        // Step 1 - pre-validate every entry before touching existing rows.
+        $parsed = $this->parseEmployeeData($data['employee_data'], 'Invalid format: ');
+        $preErrors = $parsed['errors'];
+        $payloads = [];
+        foreach ($parsed['entries'] as $entry) {
+            $empCode = $entry['code'];
+            try {
+                $detail = $this->employeeTadaDetail($empCode);
+            } catch (\Throwable $e) {
+                $preErrors[] = "Employee {$empCode}: query failed";
+
+                continue;
+            }
+            if (! $detail || empty($detail->TadaDefinerMasterBylevel_id)) {
+                $preErrors[] = "Employee {$empCode}: no TADA level assigned — skipped";
+
+                continue;
+            }
+            $payloads[] = [
+                'emp_code' => $empCode,
+                'dress_allowance' => $entry['dress'],
+                'tada_level_id' => (int) $detail->TadaDefinerMasterBylevel_id,
+                'total_usd' => $this->totalUsd($totalDays, $detail->tadaInUSD),
+            ];
+        }
+
+        if (empty($payloads)) {
+            return [
+                'ok' => false,
+                'message' => "❌ No valid employees to update.\n\n".implode("\n", $preErrors),
+                'warnings' => [],
+            ];
+        }
+
+        // Step 2 - delete + re-insert inside one transaction.
+        $inserted = 0;
+        $insertErrors = [];
+        $first = null;
+        $last = null;
+
+        DB::beginTransaction();
+        try {
+            InternationalTada::query()->where('Batch_id', $batchId)->delete();
+
+            foreach ($payloads as $payload) {
+                // Re-queried inside the transaction so the just-deleted rows are not counted.
+                $chalaniId = $this->nextChalaniNumber($fiscalYearId);
+                $first ??= $chalaniId;
+                $last = $chalaniId;
+
+                try {
+                    $this->insertRow([
+                        'Batch_id' => $batchId,
+                        'fiscal_year_master_id' => $fiscalYearId,
+                        'Chalani_id' => $chalaniId,
+                        'form_date' => $formDate,
+                        'EmpPersonalCode' => $payload['emp_code'],
+                        'Country_id' => (int) $data['country_id'],
+                        'City_id' => (int) $data['city_id'],
+                        'travel_objective' => trim($data['travel_objective']),
+                        'travelDateStart' => $startDate,
+                        'travelDateEnd' => $endDate,
+                        'TadaDefinerMasterBylevel_id' => $payload['tada_level_id'],
+                        'totalUSdrecevid' => $payload['total_usd'],
+                        'DressAllowance' => $payload['dress_allowance'],
+                        'createdBy' => $userId,
+                        'tadaverifier_id' => $batchData->tadaverifier_id,
+                    ]);
+                } catch (\Throwable $e) {
+                    $insertErrors[] = "Employee {$payload['emp_code']}: insert failed - ".$e->getMessage();
+                    break; // stop inserting; roll back below
+                }
+                $inserted++;
+            }
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return ['ok' => false, 'message' => '❌ Error deleting existing records: '.$e->getMessage(), 'warnings' => []];
+        }
+
+        if (empty($insertErrors) && $inserted > 0) {
+            DB::commit();
+
+            return [
+                'ok' => true,
+                'message' => "✅ Batch {$batchId} updated successfully!\n".$this->chalaniRange($first, $last)."\nEmployees: {$inserted}",
+                'warnings' => array_merge($preErrors, $insertErrors),
+            ];
+        }
+
+        DB::rollBack();
+
+        return [
+            'ok' => false,
+            'message' => "❌ Update failed — original records have been kept.\n".implode("\n", array_merge($preErrors, $insertErrors)),
+            'warnings' => [],
+        ];
+    }
+
+    public function chalaniRange(?int $first, ?int $last): string
+    {
+        return $first == $last ? "Chalani #: {$first}" : "Chalani #: {$first} - {$last}";
+    }
+
+    /** @return array{0:string,1:string,2:string} form date, start and end as Y-m-d */
+    private function normalizeDates(array $data): array
+    {
+        return [
+            Carbon::parse($data['form_date'])->format('Y-m-d'),
+            Carbon::parse($data['travelDateStart'])->format('Y-m-d'),
+            Carbon::parse($data['travelDateEnd'])->format('Y-m-d'),
+        ];
     }
 
     /** Paged batch listing (InternationalVraman.php). */
-    public function listRecords(int $offset, int $limit)
+    public function listRecords(int $perPage = 7): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
         return DB::table('International_tada as i')
             ->leftJoin('CountryMaster as c', 'i.Country_id', '=', 'c.Country_id')
@@ -174,20 +370,14 @@ class InternationalTadaService
             ")
             ->orderByDesc('i.createddate')
             ->orderByDesc('i.Batch_id')
-            ->offset($offset)
-            ->limit($limit)
-            ->get();
-    }
-
-    public function totalRecords(): int
-    {
-        return (int) DB::table('International_tada')->count();
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     /** First row of a batch (edit page header data). */
     public function batchHeader(string $batchId)
     {
-        return DB::table('International_tada')
+        return InternationalTada::query()
             ->select('Batch_id', 'fiscal_year_master_id', 'Chalani_id', 'form_date', 'Country_id', 'City_id',
                 'travel_objective', 'travelDateStart', 'travelDateEnd', 'TadaDefinerMasterBylevel_id',
                 'DressAllowance', 'tadaverifier_id')

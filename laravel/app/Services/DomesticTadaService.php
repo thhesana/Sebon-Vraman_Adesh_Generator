@@ -8,6 +8,8 @@ use App\Models\FiscalYear;
 use App\Models\TadaVerifier;
 use App\Models\TravelType;
 use Carbon\Carbon;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -327,31 +329,36 @@ class DomesticTadaService
     // ─── View (batch-based pagination) ──────────────────────────────────────────
 
     /**
-     * @return array{records:array, currentPageBatches:array, totalBatches:int, totalPages:int, totalRecords:int, totalRecordsOnPage:int, currentPage:int}
+     * Batch-based pagination: pages contain whole batches (all their employee rows).
+     *
+     * @return array{batches:LengthAwarePaginator, records:array, totalRecords:int, totalRecordsOnPage:int}
      */
-    public function batchListing(string $search, int $page, int $batchesPerPage = 5): array
+    public function batchListing(string $search, int $perPage = 5): array
     {
-        $page = max(1, $page);
-
         $batchQuery = DB::table('DomesticTada as dt')
             ->leftJoin('Employee_Information as e', 'dt.EmpPersonalCode', '=', 'e.EmpPersonalCode');
         if ($search !== '') {
             $batchQuery->where('e.EmpName', 'like', '%'.$search.'%');
         }
 
-        $countQuery = clone $batchQuery;
-        $totalRecords = (int) $countQuery->count();
+        $totalRecords = (int) (clone $batchQuery)->count();
 
         $allBatches = $batchQuery
             ->selectRaw('dt.domestic_Batch_id, MIN(dt.domestic_createddate) AS batch_created_date')
             ->groupBy('dt.domestic_Batch_id')
             ->orderByRaw('MIN(dt.domestic_createddate) DESC, dt.domestic_Batch_id DESC')
-            ->pluck('domestic_Batch_id')
-            ->all();
+            ->pluck('domestic_Batch_id');
 
-        $totalBatches = count($allBatches);
-        $totalPages = (int) ceil($totalBatches / $batchesPerPage);
-        $currentPageBatches = array_slice($allBatches, ($page - 1) * $batchesPerPage, $batchesPerPage);
+        $page = Paginator::resolveCurrentPage();
+        $batches = (new LengthAwarePaginator(
+            $allBatches->forPage($page, $perPage)->values(),
+            $allBatches->count(),
+            $perPage,
+            $page,
+            ['path' => Paginator::resolveCurrentPath()]
+        ))->withQueryString();
+
+        $currentPageBatches = $batches->items();
 
         $records = [];
         if (! empty($currentPageBatches)) {
@@ -375,14 +382,54 @@ class DomesticTadaService
         }
 
         return [
+            'batches' => $batches,
             'records' => $records,
-            'currentPageBatches' => $currentPageBatches,
-            'totalBatches' => $totalBatches,
-            'totalPages' => $totalPages,
             'totalRecords' => $totalRecords,
             'totalRecordsOnPage' => count($records),
-            'currentPage' => $page,
         ];
+    }
+
+    /**
+     * Parse the edit form's "code:twentyPercentFlag,..." string into per-employee payloads.
+     *
+     * @return array{0:array<string,array>, 1:string[]}  [payloads keyed by employee code, warnings]
+     */
+    public function preparePayloads(string $employeeData, int $totalDays): array
+    {
+        $payloads = [];
+        $errors = [];
+        foreach (explode(',', $employeeData) as $entry) {
+            $entry = trim($entry);
+            if ($entry === '') {
+                continue;
+            }
+            $parts = explode(':', $entry);
+            if (count($parts) !== 2) {
+                $errors[] = "Invalid format: {$entry}";
+                continue;
+            }
+            $empCode = trim($parts[0]);
+            $twenty = (int) $parts[1];
+
+            try {
+                $emp = $this->employeeWithRate($empCode);
+            } catch (\Throwable $e) {
+                $errors[] = "Employee {$empCode}: query failed";
+                continue;
+            }
+            if (! $emp) {
+                $errors[] = "Employee {$empCode}: not found";
+                continue;
+            }
+
+            $payloads[$empCode] = [
+                'is_twenty_pct_extra' => $twenty,
+                'total_tada' => $this->calculateTada($totalDays, (float) $emp->tadaInNepali, $twenty == 1),
+                'total_days' => $totalDays,
+            ];
+        }
+
+        return [$payloads, $errors];
     }
 
     // ─── Print ──────────────────────────────────────────────────────────────────

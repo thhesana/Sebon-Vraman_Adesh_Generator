@@ -9,13 +9,9 @@
 @section('content')
 <h2 class="text-center mt-4">Edit Employee</h2>
 <div class="container mt-3">
-@if ($errors->any())
-    <div class="alert alert-danger">
-        @foreach ($errors->all() as $e)<div>{{ $e }}</div>@endforeach
-    </div>
-@endif
-<form method="POST" action="{{ url('/employee_edit.php') }}?code={{ urlencode($emp->EmpPersonalCode) }}">
+<form method="POST" action="{{ route('employees.update', $emp) }}">
     @csrf
+    @method('PUT')
 
     <div class="mb-3">
         <label>Employee Code:</label>
@@ -72,7 +68,7 @@
     </div>
 
     <button class="btn btn-primary">Update Employee</button>
-    <a href="{{ url('/employee_view.php') }}" class="btn btn-secondary">Back</a>
+    <a href="{{ route('employees.index') }}" class="btn btn-secondary">Back</a>
 
 </form>
 </div>

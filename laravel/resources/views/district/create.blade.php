@@ -25,31 +25,21 @@
 
     <h2>Add New District</h2>
 
-    @if (!empty($messages))
-        <div class="error">
-            @foreach ($messages as $e)&bull; {{ $e }}<br>@endforeach
-        </div>
-    @endif
-
-    @if ($success)
-        <div class="success">{{ $success }}</div>
-    @endif
-
-    <form method="POST" action="{{ url('/add_district.php') }}">
+    <form method="POST" action="{{ route('districts.store') }}">
         @csrf
         <div class="form-group">
             <label>District Name (English)</label>
-            <input type="text" name="district_name" value="{{ $district_name }}" required>
+            <input type="text" name="district_name" value="{{ old('district_name') }}" required>
         </div>
 
         <div class="form-group">
             <label>District Name (Nepali)</label>
-            <input type="text" name="district_name_nepali" value="{{ $district_name_nepali }}" required>
+            <input type="text" name="district_name_nepali" value="{{ old('district_name_nepali') }}" required>
         </div>
 
         <div class="btn-group">
             <button type="submit" class="btn-save">Save</button>
-            <a href="{{ url('/DistrictList.php') }}" class="btn-back">Back</a>
+            <a href="{{ route('districts.index') }}" class="btn-back">Back</a>
         </div>
     </form>
 

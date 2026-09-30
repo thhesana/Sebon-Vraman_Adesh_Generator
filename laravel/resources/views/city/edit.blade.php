@@ -5,14 +5,10 @@
 @section('content')
 <h2 class="text-center mt-4">Edit City</h2>
 <div class="container mt-3">
-    @if ($errors->any())
-        <div class="alert alert-danger">
-            @foreach ($errors->all() as $e)<div>{{ $e }}</div>@endforeach
-        </div>
-    @endif
 
-    <form method="POST" action="{{ url('/city_edit.php') }}?id={{ $city->City_id }}">
+    <form method="POST" action="{{ route('cities.update', $city) }}">
         @csrf
+        @method('PUT')
 
         <div class="mb-3">
             <label>City Name:</label>
@@ -33,7 +29,7 @@
         </div>
 
         <button class="btn btn-primary">Update City</button>
-        <a href="{{ url('/cityLIst.php') }}" class="btn btn-secondary">Back</a>
+        <a href="{{ route('cities.index') }}" class="btn btn-secondary">Back</a>
     </form>
 </div>
 @endsection

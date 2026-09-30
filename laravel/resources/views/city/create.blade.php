@@ -9,13 +9,8 @@
 @section('content')
 <h2 class="text-center mt-4">Add New City</h2>
 <div class="container mt-3">
-    @if ($errors->any())
-        <div class="alert alert-danger">
-            @foreach ($errors->all() as $e)<div>{{ $e }}</div>@endforeach
-        </div>
-    @endif
 
-    <form method="POST" action="{{ url('/city_add.php') }}">
+    <form method="POST" action="{{ route('cities.store') }}">
         @csrf
 
         <div class="mb-3">
@@ -34,7 +29,7 @@
         </div>
 
         <button class="btn btn-primary">Save City</button>
-        <a href="{{ url('/cityLIst.php') }}" class="btn btn-secondary">Back</a>
+        <a href="{{ route('cities.index') }}" class="btn btn-secondary">Back</a>
     </form>
 </div>
 @endsection

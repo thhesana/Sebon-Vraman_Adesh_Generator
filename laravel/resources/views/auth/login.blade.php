@@ -41,11 +41,14 @@
 
         <h1>VRAMAN ADESH GENERATOR</h1>
 
-        @if ($error)
-            <div class="error">{{ $error }}</div>
+        @if (session('success'))
+            <div class="error" style="color:#10b981;">{{ session('success') }}</div>
         @endif
+        @foreach ($errors->all() as $message)
+            <div class="error">{{ $message }}</div>
+        @endforeach
 
-        <form method="POST" action="{{ url('/index.php') }}">
+        <form method="POST" action="{{ route('login.attempt') }}">
             @csrf
             <div class="form-group">
                 <label for="username">Username</label>

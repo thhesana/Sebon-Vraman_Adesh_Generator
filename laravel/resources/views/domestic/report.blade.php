@@ -269,7 +269,7 @@
 <!-- Filter card -->
 <div class="filter-card screen-only">
     <h6><i class="bi bi-funnel-fill"></i> Filter Report</h6>
-    <form method="GET" action="{{ url('/DOMESTIC_TADAREPORT.php') }}">
+    <form method="GET" action="{{ route('domestic.report') }}">
         <input type="hidden" name="filter_applied" value="1">
         <div class="filter-grid">
             <div>
@@ -314,7 +314,7 @@
                 <i class="bi bi-search"></i> Apply Filter
             </button>
             @if ($filterApplied)
-                <a href="{{ url('/DOMESTIC_TADAREPORT.php') }}" class="btn-outline"><i class="bi bi-x-circle"></i> Clear All</a>
+                <a href="{{ route('domestic.report') }}" class="btn-outline"><i class="bi bi-x-circle"></i> Clear All</a>
             @endif
         </div>
     </form>

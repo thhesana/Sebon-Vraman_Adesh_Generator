@@ -9,12 +9,7 @@
 @section('content')
 <h2 class="text-center mt-4">Add Employee</h2>
 <div class="container mt-3">
-@if ($errors->any())
-    <div class="alert alert-danger">
-        @foreach ($errors->all() as $e)<div>{{ $e }}</div>@endforeach
-    </div>
-@endif
-<form method="POST" action="{{ url('/employee_add.php') }}">
+<form method="POST" action="{{ route('employees.store') }}">
     @csrf
 
     <div class="mb-3">
@@ -68,7 +63,7 @@
     </div>
 
     <button class="btn btn-primary">Save Employee</button>
-    <a href="{{ url('/employee_view.php') }}" class="btn btn-secondary">Back</a>
+    <a href="{{ route('employees.index') }}" class="btn btn-secondary">Back</a>
 
 </form>
 </div>

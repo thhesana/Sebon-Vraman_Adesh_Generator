@@ -20,7 +20,7 @@
 <div class="intl-history">
 <h2><center>International Travel  Employee Status by Lastest Visit</center></h2>
 <center>
-<form method="GET" action="{{ route('international.tada.history') }}" class="search-box">
+<form method="GET" action="{{ route('international.history') }}" class="search-box">
     <input type="text" name="search" class="search-input"
            placeholder="Search by Emp Code, Name, Country, Batch..."
            value="{{ $search }}">

@@ -25,7 +25,7 @@
     <h2>FISCAL YEAR MASTER</h2>
 
     <div class="button-container">
-        <button class="add-button" onclick="window.location.href='{{ url('/add_fiscal_year.php') }}'">Add New Fiscal Year</button>
+        <button class="add-button" onclick="window.location.href='{{ route('fiscal_years.create') }}'">Add New Fiscal Year</button>
     </div>
 
     <table class="table table-bordered">
@@ -46,7 +46,7 @@
                     <td>{{ $row->fy_startdate ? \Carbon\Carbon::parse($row->fy_startdate)->format('Y-m-d') : '' }}</td>
                     <td>{{ $row->fy_enddate ? \Carbon\Carbon::parse($row->fy_enddate)->format('Y-m-d') : '' }}</td>
                     <td>
-                        <a href="{{ url('/edit_fiscal_year.php') }}?id={{ $row->fiscal_year_master_id }}" class="edit-button">Edit</a>
+                        <a href="{{ route('fiscal_years.edit', $row) }}" class="edit-button">Edit</a>
                     </td>
                 </tr>
             @empty

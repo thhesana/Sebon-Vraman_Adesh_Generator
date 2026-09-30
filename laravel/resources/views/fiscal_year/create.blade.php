@@ -11,7 +11,7 @@
                     <h4 class="mb-0">Add New Fiscal Year</h4>
                 </div>
                 <div class="card-body">
-                    <form action="{{ url('/add_fiscal_year.php') }}" method="POST">
+                    <form action="{{ route('fiscal_years.store') }}" method="POST">
                         @csrf
                         <div class="mb-3">
                             <label for="fy" class="form-label">Fiscal Year</label>

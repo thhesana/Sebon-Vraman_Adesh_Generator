@@ -77,8 +77,6 @@
 @php
     $formatDate = fn ($d) => $d ? strtoupper(\Carbon\Carbon::parse($d)->format('d-M-Y')) : '-';
     $formatNumber = fn ($n) => ((float) $n == floor((float) $n)) ? number_format((float) $n, 0) : number_format((float) $n, 2);
-    $searchQs = $searchName !== '' ? '&search='.urlencode($searchName) : '';
-    $pageUrl = fn ($p) => url('/DomesticTadaView.php').'?page='.$p.$searchQs;
 @endphp
 <div class="dt-page">
 <div class="container-fluid px-lg-5">
@@ -88,7 +86,7 @@
                 <i class="bi bi-house-fill"></i>
                 DOMESTIC TRAVEL RECORDS
             </h1>
-            <a href="{{ url('/AddDomesticTada.php') }}" class="btn-gradient">
+            <a href="{{ route('domestic.create') }}" class="btn-gradient">
                 <i class="bi bi-plus-circle-fill"></i>
                 Add New Batch
             </a>
@@ -96,7 +94,7 @@
 
         <!-- Search Filter -->
         <div class="search-container">
-            <form method="GET" action="{{ url('/DomesticTadaView.php') }}" class="search-form">
+            <form method="GET" action="{{ route('domestic.index') }}" class="search-form">
                 <div class="search-input-wrapper">
                     <input type="text" name="search" class="search-input" placeholder="Search by Employee Name..." value="{{ $searchName }}">
                     <i class="bi bi-search search-icon"></i>
@@ -106,7 +104,7 @@
                     Search
                 </button>
                 @if ($searchName !== '')
-                    <a href="{{ url('/DomesticTadaView.php') }}" class="btn-clear">
+                    <a href="{{ route('domestic.index') }}" class="btn-clear">
                         <i class="bi bi-x-circle"></i>
                         Clear
                     </a>
@@ -117,7 +115,7 @@
                 <div class="search-results-info">
                     <i class="bi bi-info-circle-fill" style="color: #667eea;"></i>
                     Showing results for: <strong>"{{ $searchName }}"</strong>
-                    ({{ $totalRecords }} records in {{ $totalBatches }} batches)
+                    ({{ $totalRecords }} records in {{ $batches->total() }} batches)
                 </div>
             @endif
         </div>
@@ -172,10 +170,10 @@
                                     <td>
                                         <div class="action-buttons">
                                             @if ($isFirstInBatch)
-                                                <a href="{{ url('/EditDomesticTada.php') }}?batch_id={{ urlencode($row->domestic_Batch_id) }}" class="btn-action btn-edit">
+                                                <a href="{{ route('domestic.edit', $row->domestic_Batch_id) }}" class="btn-action btn-edit">
                                                     <i class="bi bi-pencil-fill"></i> Edit
                                                 </a>
-                                                <a href="{{ url('/PrintDomesticTada.php') }}?batch_id={{ urlencode($row->domestic_Batch_id) }}" class="btn-action btn-print" target="_blank">
+                                                <a href="{{ route('domestic.print', $row->domestic_Batch_id) }}" class="btn-action btn-print" target="_blank">
                                                     <i class="bi bi-printer-fill"></i> Print
                                                 </a>
                                             @endif
@@ -189,53 +187,15 @@
             </div>
         </div>
 
-        @if ($totalPages > 1)
+        @if ($batches->hasPages())
         <div class="pagination-container">
             <div class="pagination-info">
-                Showing {{ count($currentPageBatches) }} batches
+                Showing {{ $batches->count() }} batches
                 ({{ $totalRecordsOnPage }} records)
-                | Total: {{ $totalBatches }} batches ({{ $totalRecords }} records)
+                | Total: {{ $batches->total() }} batches ({{ $totalRecords }} records)
             </div>
 
-            <ul class="pagination">
-                <li class="{{ $currentPage == 1 ? 'disabled' : '' }}">
-                    <a href="{{ $pageUrl($currentPage - 1) }}">
-                        <i class="bi bi-chevron-left"></i> Prev
-                    </a>
-                </li>
-
-                @php
-                    $range = 2;
-                    $startPage = max(1, $currentPage - $range);
-                    $endPage = min($totalPages, $currentPage + $range);
-                @endphp
-
-                @if ($startPage > 1)
-                    <li><a href="{{ $pageUrl(1) }}">1</a></li>
-                    @if ($startPage > 2)
-                        <li class="disabled"><a>...</a></li>
-                    @endif
-                @endif
-
-                @for ($i = $startPage; $i <= $endPage; $i++)
-                    <li class="{{ $i == $currentPage ? 'active' : '' }}">
-                        <a href="{{ $pageUrl($i) }}">{{ $i }}</a>
-                    </li>
-                @endfor
-
-                @if ($endPage < $totalPages)
-                    @if ($endPage < $totalPages - 1)
-                        <li class="disabled"><a>...</a></li>
-                    @endif
-                    <li><a href="{{ $pageUrl($totalPages) }}">{{ $totalPages }}</a></li>
-                @endif
-
-                <li class="{{ $currentPage == $totalPages ? 'disabled' : '' }}">
-                    <a href="{{ $pageUrl($currentPage + 1) }}">
-                        Next <i class="bi bi-chevron-right"></i>
-                    </a>
-                </li>
-            </ul>
+            {{ $batches->links() }}
         </div>
         @endif
     </div>
