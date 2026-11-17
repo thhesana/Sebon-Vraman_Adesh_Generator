@@ -1,0 +1,5 @@
+/* Old international travel record form: layout only (shares css/international/form.css). */
+.old-intl-form .calc,
+.old-intl-form #grandTotal { font-variant-numeric: tabular-nums; }
+.old-intl-form #grandTotal { background: var(--gray-50, #f8fafc); }
+.old-intl-form #exchangeDateBs { font-family: var(--font-nepali); }
